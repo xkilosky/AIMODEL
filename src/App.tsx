@@ -524,7 +524,10 @@ export const App: React.FC = () => {
     const placeholder: ChatMessage = {
       id: assistantMsgId,
       role: 'assistant',
-      content: '',
+      content:
+        activeModel.engine === 'llama-cpp-native'
+          ? 'Generating locally on your phone. The Android native engine displays its reply when generation finishes.'
+          : '',
       reasoning: '',
       createdAt: Date.now(),
       modelName: activeModel.name,
