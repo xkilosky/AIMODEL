@@ -3,8 +3,8 @@ import { Capacitor } from '@capacitor/core';
 import {
   CheckCircle2,
   Cpu,
-  Download,
   ExternalLink,
+  Package,
   Shield,
   Smartphone,
   Sparkles,
@@ -25,8 +25,7 @@ interface AndroidInstallModalProps {
   onTriggerInstallPrompt: () => void;
 }
 
-const APK_RELEASE_URL =
-  'https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Local-Android.apk';
+const GITHUB_ACTIONS_URL = 'https://github.com/xkilosky/AIMODEL/actions';
 
 export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
   isOpen,
@@ -62,9 +61,9 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               <Smartphone className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold">Install Local on Your Phone</h2>
+              <h2 className="text-base font-semibold">Load Local on Your Phone</h2>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Android APK & Instant Offline Home-Screen App
+                Install as a Fullscreen Android App (WebAPK or Native .apk)
               </p>
             </div>
           </div>
@@ -79,7 +78,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
         </div>
 
         <div className="p-5 overflow-y-auto space-y-4 text-xs">
-          {/* Option 1: Direct Android APK Download */}
+          {/* Option 1: Instant 1-Tap Phone App Install */}
           <div
             className="rounded-2xl border p-4 space-y-3"
             style={{
@@ -87,43 +86,43 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               borderColor: 'var(--border-strong)',
             }}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="font-semibold text-sm flex items-center gap-1.5">
-                  <Download className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                  <span>Option 1: Download Android APK</span>
-                </div>
-                <p className="mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  Native Android package (<code className="font-mono">Local-Android.apk</code>) with
-                  ARM64 C++ <code className="font-mono">llama.cpp</code> JNI, large-heap support, and
-                  direct file-picker access.
+            <div className="font-semibold text-sm flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span>Option 1: Instant Phone Install (Fastest — 10 Seconds)</span>
+            </div>
+
+            {installPrompt ? (
+              <button
+                type="button"
+                onClick={onTriggerInstallPrompt}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-text)',
+                }}
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Install Local App Now (1-Tap)</span>
+              </button>
+            ) : (
+              <div className="space-y-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p>
+                  <strong style={{ color: 'var(--text-primary)' }}>On Android (Chrome):</strong>{' '}
+                  Open this app&apos;s URL in Chrome on your phone → tap{' '}
+                  <strong>Menu (⋮)</strong> in the top-right → tap{' '}
+                  <strong>Install app / Add to Home screen</strong>. Android installs{' '}
+                  <strong>Local</strong> into your App Drawer as a standalone fullscreen app!
+                </p>
+                <p>
+                  <strong style={{ color: 'var(--text-primary)' }}>On iPhone (Safari):</strong>{' '}
+                  Open in Safari → tap <strong>Share</strong> → tap{' '}
+                  <strong>Add to Home Screen</strong>.
                 </p>
               </div>
-            </div>
-
-            <a
-              href={APK_RELEASE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
-              style={{
-                backgroundColor: 'var(--accent)',
-                color: 'var(--accent-text)',
-              }}
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Local-Android.apk</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-            </a>
-
-            <div className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              On your Android phone: tap <strong>Download</strong> → open{' '}
-              <code className="font-mono">Local-Android.apk</code> from Notifications/Downloads → tap{' '}
-              <strong>Install</strong> (allow &ldquo;Install unknown apps&rdquo; if prompted).
-            </div>
+            )}
           </div>
 
-          {/* Option 2: 1-Tap Chrome / Safari App Install (PWA / WebAPK) */}
+          {/* Option 2: Native Android APK Build */}
           <div
             className="rounded-2xl border p-4 space-y-3"
             style={{
@@ -132,38 +131,31 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
             }}
           >
             <div className="font-semibold text-sm flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <span>Option 2: Instant Phone Install (No APK Settings Needed)</span>
+              <Package className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span>Option 2: Native Android APK (.apk File)</span>
             </div>
-
-            {installPrompt ? (
-              <button
-                type="button"
-                onClick={onTriggerInstallPrompt}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border text-xs font-semibold transition-opacity hover:opacity-90"
-                style={{
-                  backgroundColor: 'var(--bg-main)',
-                  borderColor: 'var(--accent)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <Smartphone className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                <span>Install Local App Now (1-Tap)</span>
-              </button>
-            ) : (
-              <div className="space-y-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                <p>
-                  • <strong>On Android (Chrome):</strong> Open this app&apos;s URL in Chrome → tap{' '}
-                  <strong>Menu (⋮)</strong> in the top-right → tap{' '}
-                  <strong>Add to Home screen / Install app</strong>. Android installs a fullscreen{' '}
-                  <strong>Local</strong> app icon in your app drawer!
-                </p>
-                <p>
-                  • <strong>On iPhone (Safari):</strong> Tap the <strong>Share</strong> button at the
-                  bottom → tap <strong>Add to Home Screen</strong>.
-                </p>
-              </div>
-            )}
+            <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Want a standalone <code className="font-mono">Local-Android.apk</code> with native
+              ARM64 C++ <code className="font-mono">llama.cpp</code> JNI? Merge the branch into{' '}
+              <code className="font-mono">main</code> on GitHub and run the included{' '}
+              <strong>Build Local Android APK</strong> GitHub Actions workflow — it compiles and
+              publishes <code className="font-mono">Local-Android.apk</code> automatically in the
+              cloud (or run <code className="font-mono">npm run android:sync</code> in Android
+              Studio).
+            </p>
+            <a
+              href={GITHUB_ACTIONS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border text-xs font-medium transition-opacity hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--bg-main)',
+                borderColor: 'var(--border-strong)',
+              }}
+            >
+              <span>Open GitHub Actions APK Builder</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+            </a>
           </div>
 
           {/* Hardware Capabilities */}
