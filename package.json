@@ -8,7 +8,8 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "android:sync": "npm run build && npx cap sync android",
+    "patch:android-llama": "node scripts/patch-llama-android.mjs",
+    "android:sync": "npm run build && npm run patch:android-llama && npx cap sync android",
     "android:open": "npx cap open android"
   },
   "dependencies": {

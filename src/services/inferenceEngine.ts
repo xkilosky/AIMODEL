@@ -454,7 +454,7 @@ class LocalInferenceManager {
           // Fall back to ChatML for models whose chat template cannot be formatted natively.
         }
       }
-      await this.nativeLlama.completion(
+      const nativeResult = await this.nativeLlama.completion(
         {
           prompt,
           stop: ['<|im_end|>', '<|endoftext|>'],
@@ -469,6 +469,18 @@ class LocalInferenceManager {
           emitChunk(data.token);
         }
       );
+      // The Android plugin returns the completed text but does not emit its token events.
+      // Use that result when no stream callbacks arrived instead of silently showing 0 tokens.
+      if (!signal.aborted && !rawAccumulated) {
+        const finalText = nativeResult.text || nativeResult.content || nativeResult.reasoning_content || '';
+        if (!finalText) {
+          throw new Error(
+            `Android llama.cpp completed with ${nativeResult.tokens_predicted || 0} tokens but returned no text. Check that this is a chat/instruct Qwen GGUF.`
+          );
+        }
+        emitChunk(finalText);
+        if (nativeResult.tokens_predicted > 0) tokenCount = nativeResult.tokens_predicted;
+      }
     }
     // 2. Wllama (llama.cpp WASM / WebGPU)
     else if (this.wllama) {
