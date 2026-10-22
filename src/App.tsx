@@ -26,6 +26,7 @@ import type {
   ChatMessage,
   Conversation,
   InferenceSettings,
+  LoadedModelBundle,
   LoaderProgress,
   StoredModelRecord,
   ThemeId,
@@ -38,6 +39,7 @@ import {
   loadModelBundleById,
   loadSavedConversations,
   loadSavedTheme,
+  MAX_MODEL_LIBRARY_BYTES,
   saveConversations,
   saveInferenceSettings,
   saveModelBundle,
@@ -46,7 +48,16 @@ import {
 } from './services/modelStorage';
 import { buildSampleModelArchiveZip, processPickedModelFiles } from './services/archiveLoader';
 import { inferenceEngine } from './services/inferenceEngine';
-import { formatBytes } from './services/binaryInspectors';
+import { formatBytes, inspectGgufHeader } from './services/binaryInspectors';
+import {
+  addNativeModelCopyProgressListener,
+  deleteNativeStoredModel,
+  getDeviceProfile,
+  getModelFitAssessment,
+  MAX_LOCAL_MODEL_BYTES,
+  pickAndStoreNativeGguf,
+  type DeviceProfile,
+} from './services/nativeDevice';
 import { LocalLogo } from './components/LocalLogo';
 import { MarkdownMessage } from './components/MarkdownMessage';
 import { SidebarDrawer } from './components/SidebarDrawer';
@@ -136,6 +147,7 @@ export const App: React.FC = () => {
   const [inspectedModel, setInspectedModel] = useState<StoredModelRecord | null>(null);
   const [phoneFramePreview, setPhoneFramePreview] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deviceProfile, setDeviceProfile] = useState<DeviceProfile | null>(null);
 
   // Model loading state
   const [persistToDevice, setPersistToDevice] = useState(true);
@@ -180,9 +192,14 @@ export const App: React.FC = () => {
 
   // Initial load of saved model records & storage estimate + Android hardware back button
   const refreshLibraryAndQuota = async () => {
-    const [list, quota] = await Promise.all([listStoredModels(), getDeviceStorageEstimate()]);
+    const [list, quota, profile] = await Promise.all([
+      listStoredModels(),
+      getDeviceStorageEstimate(),
+      getDeviceProfile(),
+    ]);
     setStoredModels(list);
     setStorageInfo(quota);
+    setDeviceProfile(profile);
   };
 
   useEffect(() => {
@@ -232,22 +249,60 @@ export const App: React.FC = () => {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [inputText]);
 
+  const confirmModelFit = (record: StoredModelRecord): boolean => {
+    const assessment = getModelFitAssessment(
+      record.totalBytes,
+      deviceProfile,
+      settings.contextSize
+    );
+    if (assessment.level === 'ok') return true;
+    return window.confirm(
+      `${assessment.message}\n\n${record.name} (${formatBytes(record.totalBytes)}) may make this phone slow or run out of memory. Continue anyway?`
+    );
+  };
+
   const handlePickedModelFiles = async (files: FileList | File[]) => {
     setLoaderError(null);
     try {
       const bundle = await processPickedModelFiles(files, setLoaderProgress);
-      // Auto-avoid exhausting browser IndexedDB if file > 600 MB unless explicitly desired
-      const shouldPersist = persistToDevice && bundle.record.totalBytes <= 600 * 1024 * 1024;
+      if (bundle.record.totalBytes > MAX_LOCAL_MODEL_BYTES) {
+        throw new Error('This model is larger than Local’s 8 GB per-device model-library limit.');
+      }
+      const libraryBytes = storedModels.reduce((sum, model) => sum + model.totalBytes, 0);
+      if (libraryBytes + bundle.record.totalBytes > MAX_MODEL_LIBRARY_BYTES) {
+        throw new Error('The Local model library is limited to 8 GB total. Delete a model before adding another.');
+      }
+      if (!confirmModelFit(bundle.record)) {
+        setLoaderProgress(null);
+        return;
+      }
+
+      const quota = await getDeviceStorageEstimate();
+      const storageAvailable = quota.quota > 0 ? Math.max(0, quota.quota - quota.usage) : 0;
+      let shouldPersist =
+        persistToDevice &&
+        bundle.record.totalBytes <= MAX_LOCAL_MODEL_BYTES &&
+        (storageAvailable > 0
+          ? bundle.record.totalBytes + 256 * 1024 * 1024 <= storageAvailable
+          : bundle.record.totalBytes <= 600 * 1024 * 1024);
 
       setLoaderProgress({
         stage: 'caching',
         percent: 74,
         detail: shouldPersist
-          ? 'Saving archive into on-device IndexedDB...'
-          : 'Mounting direct zero-copy file handle...',
+          ? `Saving model data to on-device storage (up to 8 GB library)...`
+          : 'Mounting this file for the current app session...',
       });
 
-      const savedRec = await saveModelBundle(bundle, shouldPersist);
+      let savedRec: StoredModelRecord;
+      try {
+        savedRec = await saveModelBundle(bundle, shouldPersist);
+      } catch (storageError) {
+        if (!shouldPersist) throw storageError;
+        shouldPersist = false;
+        savedRec = await saveModelBundle(bundle, false);
+        setLoaderError('Phone storage did not allow a permanent copy. The model is loaded for this session only.');
+      }
       bundle.record = savedRec;
 
       await inferenceEngine.activateModel(bundle, settings, setLoaderProgress);
@@ -265,6 +320,82 @@ export const App: React.FC = () => {
     }
   };
 
+  const handlePickNativeGguf = async () => {
+    setLoaderError(null);
+    setLoaderProgress({ stage: 'reading', percent: 4, detail: 'Choose a GGUF model from Android Files…' });
+    let picked: Awaited<ReturnType<typeof pickAndStoreNativeGguf>> | null = null;
+    let savedNativeModelId: string | null = null;
+    let copyProgressHandle: Awaited<ReturnType<typeof addNativeModelCopyProgressListener>> = null;
+    try {
+      copyProgressHandle = await addNativeModelCopyProgressListener(({ bytesCopied, totalBytes }) => {
+        const percent = totalBytes > 0 ? Math.round((bytesCopied / totalBytes) * 35) : 0;
+        setLoaderProgress({
+          stage: 'caching',
+          percent: 5 + percent,
+          detail: `Copying model into Local storage: ${formatBytes(bytesCopied)} / ${formatBytes(totalBytes)}…`,
+        });
+      });
+      picked = await pickAndStoreNativeGguf();
+      setLoaderProgress({
+        stage: 'caching',
+        percent: 40,
+        detail: `Copied ${picked.name} (${formatBytes(picked.sizeBytes)}) into Local’s file-backed model storage.`,
+      });
+
+      const raw = atob(picked.headerBase64);
+      const prefix = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) prefix[i] = raw.charCodeAt(i);
+      const specs = await inspectGgufHeader(new Blob([prefix]), picked.name);
+      const now = Date.now();
+      const record: StoredModelRecord = {
+        id: `native-model-${now}-${Math.random().toString(36).slice(2, 7)}`,
+        name: specs.modelName || picked.name.replace(/\.gguf$/i, '').replace(/[-_]+/g, ' '),
+        sourceLabel: 'Android native GGUF file',
+        engine: 'llama-cpp-native',
+        totalBytes: picked.sizeBytes,
+        createdAt: now,
+        lastUsedAt: now,
+        persistedInIdb: true,
+        nativePath: picked.path,
+        entries: [{ path: picked.name, size: picked.sizeBytes, kind: 'gguf' }],
+        specs,
+      };
+
+      const libraryBytes = storedModels.reduce((sum, model) => sum + model.totalBytes, 0);
+      if (libraryBytes + record.totalBytes > MAX_MODEL_LIBRARY_BYTES) {
+        await deleteNativeStoredModel(picked.path);
+        throw new Error('The Local model library is limited to 8 GB total. Delete a model before adding another.');
+      }
+      if (!confirmModelFit(record)) {
+        await deleteNativeStoredModel(picked.path);
+        setLoaderProgress(null);
+        return;
+      }
+
+      const bundle: LoadedModelBundle = { record, files: new Map() };
+      const savedRec = await saveModelBundle(bundle, true);
+      savedNativeModelId = savedRec.id;
+      bundle.record = savedRec;
+      await inferenceEngine.activateModel(bundle, settings, setLoaderProgress);
+      setActiveModel({ ...bundle.record });
+      await refreshLibraryAndQuota();
+      setTimeout(() => {
+        setLoaderProgress(null);
+        setModelModalOpen(false);
+      }, 450);
+    } catch (err: unknown) {
+      if (savedNativeModelId) await deleteStoredModel(savedNativeModelId).catch(() => {});
+      if (picked?.path && !storedModels.some((model) => model.nativePath === picked?.path)) {
+        await deleteNativeStoredModel(picked.path).catch(() => {});
+      }
+      const msg = err instanceof Error ? err.message : 'Could not import the GGUF model.';
+      setLoaderError(msg);
+      setLoaderProgress({ stage: 'error', percent: 100, detail: msg });
+    } finally {
+      if (copyProgressHandle) await copyProgressHandle.remove().catch(() => {});
+    }
+  };
+
   const handleActivateStoredModel = async (id: string) => {
     setLoaderError(null);
     try {
@@ -278,6 +409,10 @@ export const App: React.FC = () => {
         throw new Error(
           'This large model was loaded as a direct session handle. Please re-pick its file from storage to mount it.'
         );
+      }
+      if (!confirmModelFit(bundle.record)) {
+        setLoaderProgress(null);
+        return;
       }
       await inferenceEngine.activateModel(bundle, settings, setLoaderProgress);
       await touchModelLastUsed(id);
@@ -301,9 +436,18 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteModel = async (id: string) => {
+    const model = storedModels.find((item) => item.id === id);
     if (activeModel?.id === id) {
       await inferenceEngine.unload();
       setActiveModel(null);
+    }
+    if (model?.nativePath) {
+      try {
+        await deleteNativeStoredModel(model.nativePath);
+      } catch (err) {
+        setLoaderError(err instanceof Error ? err.message : 'Could not remove native model file.');
+        return;
+      }
     }
     await deleteStoredModel(id);
     await refreshLibraryAndQuota();
@@ -1068,9 +1212,11 @@ export const App: React.FC = () => {
         progress={loaderProgress}
         errorMsg={loaderError}
         storageInfo={storageInfo}
+        deviceProfile={deviceProfile}
         persistToDevice={persistToDevice}
         onTogglePersist={setPersistToDevice}
         onFilesPicked={handlePickedModelFiles}
+        onPickNativeGguf={handlePickNativeGguf}
         onActivateStoredModel={handleActivateStoredModel}
         onUnloadActiveModel={handleUnloadActiveModel}
         onDeleteModel={handleDeleteModel}
@@ -1098,6 +1244,7 @@ export const App: React.FC = () => {
         isOpen={androidModalOpen}
         onClose={() => setAndroidModalOpen(false)}
         storageInfo={storageInfo}
+        deviceProfile={deviceProfile}
         installPrompt={installPrompt}
         onTriggerInstallPrompt={handleTriggerInstallPrompt}
       />

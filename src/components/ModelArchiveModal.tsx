@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   Archive,
   CheckCircle2,
@@ -17,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import type { LoaderProgress, StoredModelRecord } from '../types/local';
+import type { DeviceProfile } from '../services/nativeDevice';
 import { formatBytes } from '../services/binaryInspectors';
 
 interface ModelArchiveModalProps {
@@ -27,9 +29,11 @@ interface ModelArchiveModalProps {
   progress: LoaderProgress | null;
   errorMsg: string | null;
   storageInfo: { usage: number; quota: number };
+  deviceProfile: DeviceProfile | null;
   persistToDevice: boolean;
   onTogglePersist: (val: boolean) => void;
   onFilesPicked: (files: FileList | File[]) => void;
+  onPickNativeGguf: () => void;
   onActivateStoredModel: (id: string) => void;
   onUnloadActiveModel: () => void;
   onDeleteModel: (id: string) => void;
@@ -46,9 +50,11 @@ export const ModelArchiveModal: React.FC<ModelArchiveModalProps> = ({
   progress,
   errorMsg,
   storageInfo,
+  deviceProfile,
   persistToDevice,
   onTogglePersist,
   onFilesPicked,
+  onPickNativeGguf,
   onActivateStoredModel,
   onUnloadActiveModel,
   onDeleteModel,
@@ -237,6 +243,32 @@ export const ModelArchiveModal: React.FC<ModelArchiveModalProps> = ({
                   </div>
                 </div>
               </button>
+
+              {Capacitor.isNativePlatform() && (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={onPickNativeGguf}
+                  className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2 p-3.5 rounded-xl border text-left transition-transform active:scale-[0.98] hover:opacity-95 disabled:opacity-50"
+                  style={{
+                    backgroundColor: 'var(--accent-soft)',
+                    borderColor: 'var(--accent)',
+                  }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: 'var(--bg-main)', color: 'var(--accent)' }}
+                  >
+                    <HardDrive className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Large GGUF (Native)</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      Stream-copied to phone storage · up to 8 GB
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
 
             <div className="mt-3 pt-2.5 border-t flex flex-wrap items-center justify-between gap-2 text-xs" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -257,6 +289,35 @@ export const ModelArchiveModal: React.FC<ModelArchiveModalProps> = ({
               </span>
             </div>
           </div>
+
+          {deviceProfile && (
+            <div
+              className="px-3.5 py-2.5 rounded-xl border text-[11px] leading-relaxed"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {deviceProfile.manufacturer && deviceProfile.model
+                  ? `${deviceProfile.manufacturer} ${deviceProfile.model}`
+                  : deviceProfile.model || deviceProfile.manufacturer || 'This phone'}
+              </strong>
+              {' · '}
+              {deviceProfile.totalRamBytes
+                ? `${formatBytes(deviceProfile.totalRamBytes)} RAM`
+                : deviceProfile.deviceMemoryGb
+                  ? `about ${deviceProfile.deviceMemoryGb} GB RAM`
+                  : 'RAM estimate unavailable'}
+              {deviceProfile.isNative && (
+                <>
+                  {' · Model library '}
+                  {formatBytes(deviceProfile.modelStorageUsedBytes || 0)} / 8 GB
+                </>
+              )}
+            </div>
+          )}
 
           {/* Live Progress Bar */}
           {progress && (

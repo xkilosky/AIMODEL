@@ -229,9 +229,11 @@ class LocalInferenceManager {
         this.activeBundle = bundle;
         onProgress?.({ stage: 'ready', percent: 100, detail: 'Model active on Native JNI!' });
         return;
-      } catch {
-        // Fall back smoothly to @wllama/wllama WebGPU/WASM if native path isn't directly accessible
-        record.engine = 'llama-cpp-wasm';
+      } catch (err: unknown) {
+        const reason = err instanceof Error ? err.message : String(err || 'Native model initialization failed.');
+        throw new Error(
+          `Native llama.cpp could not load this phone-stored GGUF file: ${reason}. Check that the model is a valid GGUF and that the phone has enough free RAM.`
+        );
       }
     }
 

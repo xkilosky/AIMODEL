@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import {
   CheckCircle2,
   Cpu,
+  Download,
   ExternalLink,
   Package,
   Shield,
@@ -11,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatBytes } from '../services/binaryInspectors';
+import type { DeviceProfile } from '../services/nativeDevice';
 
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -21,16 +23,20 @@ interface AndroidInstallModalProps {
   isOpen: boolean;
   onClose: () => void;
   storageInfo: { usage: number; quota: number };
+  deviceProfile: DeviceProfile | null;
   installPrompt: BeforeInstallPromptEvent | null;
   onTriggerInstallPrompt: () => void;
 }
 
 const GITHUB_ACTIONS_URL = 'https://github.com/xkilosky/AIMODEL/actions';
+const APK_RELEASE_URL =
+  'https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Local-Android.apk';
 
 export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
   isOpen,
   onClose,
   storageInfo,
+  deviceProfile,
   installPrompt,
   onTriggerInstallPrompt,
 }) => {
@@ -38,7 +44,20 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
 
   const isNative = Capacitor.isNativePlatform();
   const hasWebGpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
-  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+  const cores = deviceProfile?.hardwareConcurrency || (navigator.hardwareConcurrency || 4);
+  const deviceName = deviceProfile?.manufacturer && deviceProfile?.model
+    ? `${deviceProfile.manufacturer} ${deviceProfile.model}`
+    : deviceProfile?.model || deviceProfile?.manufacturer || 'Android phone';
+  const ramLabel = deviceProfile?.totalRamBytes
+    ? `${formatBytes(deviceProfile.totalRamBytes)} total · ${formatBytes(deviceProfile.availableRamBytes || 0)} free`
+    : deviceProfile?.deviceMemoryGb
+      ? `About ${deviceProfile.deviceMemoryGb} GB (browser estimate)`
+      : 'Not exposed by browser';
+  const modelStorageLabel = deviceProfile?.isNative
+    ? `${formatBytes(deviceProfile.modelStorageUsedBytes || 0)} / 8 GB used`
+    : storageInfo.quota > 0
+      ? `${formatBytes(storageInfo.usage)} / ${formatBytes(storageInfo.quota)}`
+      : 'Browser quota unavailable';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
@@ -135,14 +154,18 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               <span>Option 2: Native Android APK (.apk File)</span>
             </div>
             <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Want a standalone <code className="font-mono">Local-Android.apk</code> with native
-              ARM64 C++ <code className="font-mono">llama.cpp</code> JNI? Merge the branch into{' '}
-              <code className="font-mono">main</code> on GitHub and run the included{' '}
-              <strong>Build Local Android APK</strong> GitHub Actions workflow — it compiles and
-              publishes <code className="font-mono">Local-Android.apk</code> automatically in the
-              cloud (or run <code className="font-mono">npm run android:sync</code> in Android
-              Studio).
+              Install the native Android app for direct file-backed GGUF loading, native llama.cpp,
+              and device RAM/storage detection. Download the APK, open it from Downloads, and approve
+              Android&apos;s one-time &ldquo;Install unknown apps&rdquo; prompt if shown.
             </p>
+            <a
+              href={APK_RELEASE_URL}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Local Android APK</span>
+            </a>
             <a
               href={GITHUB_ACTIONS_URL}
               target="_blank"
@@ -153,7 +176,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
                 borderColor: 'var(--border-strong)',
               }}
             >
-              <span>Open GitHub Actions APK Builder</span>
+              <span>View latest APK builds</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-75" />
             </a>
           </div>
@@ -171,24 +194,22 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               <span>Detected Device Runtime</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
+              <StatusBadge label="Phone" value={deviceName} />
+              <StatusBadge label="RAM (estimated)" value={ramLabel} />
               <StatusBadge
-                label="Platform"
-                value={isNative ? 'Android Native APK' : 'Mobile Web / PWA'}
+                label="Runtime"
+                value={isNative ? 'Native Android / llama.cpp' : 'Mobile Web / WASM'}
               />
+              <StatusBadge label="CPU Cores" value={`${cores} logical cores`} />
               <StatusBadge
-                label="GPU Acceleration"
-                value={hasWebGpu ? 'WebGPU Enabled' : 'WASM SIMD CPU'}
+                label="GPU"
+                value={hasWebGpu ? 'WebGPU available' : 'CPU fallback'}
               />
-              <StatusBadge label="CPU Threads" value={`${cores} Logical Cores`} />
-              <StatusBadge
-                label="Local Storage"
-                value={
-                  storageInfo.quota > 0
-                    ? `${formatBytes(storageInfo.quota)} Quota`
-                    : 'IndexedDB Ready'
-                }
-              />
+              <StatusBadge label="Model library" value={modelStorageLabel} />
             </div>
+            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              RAM figures from the native APK are system-reported. Browser RAM figures are approximate or hidden; model-fit warnings are estimates, not guarantees.
+            </p>
           </div>
 
           <div

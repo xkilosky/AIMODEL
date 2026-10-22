@@ -7,9 +7,11 @@
 ## Key Features
 
 - **Pick Models & Compressed Archives from Device Storage**
-  - **GGUF Models (`.gguf` or `.zip` containing `.gguf`)**: Runs on **llama.cpp** — Native ARM64 C++ JNI (`llama-cpp-capacitor`) inside the Android APK, plus WebGPU / WASM SIMD (`@wllama/wllama`) in Android WebView & browsers.
-  - **ONNX / Transformers Archives (`.zip`, `.tar.gz`, `.tar`, or directories)**: Automatically unpacks `config.json`, `tokenizer.json`, and `.onnx` weights into persistent IndexedDB virtual storage and runs via **ONNX Runtime (`@huggingface/transformers`)**.
-  - **Binary Header & Archive Inspector**: Instantly parses GGUF v1–v3 KV metadata, Safetensors tensor tables, and archive file trees without loading multi-GB files fully into RAM.
+  - **Large GGUFs on Android (`.gguf`)**: The native APK's Android Files picker copies raw GGUF weights in a streaming, 1 MB buffer into app-private phone storage, then loads the file directly with ARM64 `llama.cpp`/memory mapping. The local model-library cap is **8 GiB total per app install**; actual import is limited by available phone storage.
+  - **Web/PWA GGUFs**: Runs via WebGPU/WASM SIMD and uses browser-managed storage; large browser loads are best-effort and may be session-only depending on browser quota. Use the APK's **Large GGUF (Native)** picker for multi-GB files.
+  - **ONNX / Transformers Archives (`.zip`, `.tar.gz`, `.tar`, or directories)**: Unpacks `config.json`, `tokenizer.json`, and `.onnx` weights into IndexedDB virtual storage and runs via **ONNX Runtime (`@huggingface/transformers`)**. Archive extraction memory use depends on archive size; use raw `.gguf` for very large models.
+  - **Device fit checks**: The APK reads Android manufacturer/model, available/total RAM and free storage. Local estimates model working memory, warns before risky loads, and offers lower-resource settings. Browser installs show only approximate RAM/device information when the browser exposes it.
+  - **Binary Header & Archive Inspector**: Parses GGUF v1–v3 KV metadata, Safetensors tensor tables, and archive file trees without loading multi-GB GGUF weights fully into JavaScript RAM.
   - **Built-in Sample `.zip` Archive**: Export `local-starter-assistant.zip` to your Downloads folder or mount it in one tap to test archive extraction and streaming chat immediately.
 
 - **Claude & ChatGPT Studio Experience**
@@ -31,8 +33,11 @@ npm run dev
 
 ## Building the Native Android APK
 
-### Option 1: Automated Cloud Build (GitHub Actions)
-Push to GitHub or trigger the **Build Local Android APK** workflow in `.github/workflows/android-apk.yml`. GitHub Actions compiles the native ARM64 `llama.cpp` + Capacitor Android app and publishes `Local-Android-arm64-debug-apk` as a downloadable `.apk` artifact.
+### Option 1: Download the Android APK
+Install the latest signed-by-GitHub Actions debug APK from [GitHub Releases](https://github.com/xkilosky/AIMODEL/releases/latest). On Android, download the APK, open it from Downloads, and approve the one-time unknown-app install prompt if Android asks.
+
+### Option 2: Automated Cloud Build (GitHub Actions)
+Push to GitHub or trigger the **Build Local Android APK** workflow in `.github/workflows/android-apk.yml`. GitHub Actions compiles the native ARM64 `llama.cpp` + Capacitor Android app, uploads a workflow artifact, and refreshes the APK in GitHub Releases.
 
 ### Option 2: Local Build with Android Studio
 1. Install JDK 21 and Android Studio (with Android SDK 36 & NDK `29.0.13113456`).

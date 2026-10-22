@@ -13,8 +13,9 @@ const STORE_BLOBS = 'model_blobs';
 const LS_CONVERSATIONS = 'local_ai_conversations_v1';
 const LS_SETTINGS = 'local_ai_settings_v1';
 const LS_THEME = 'local_ai_theme_v1';
+export const MAX_MODEL_LIBRARY_BYTES = 8 * 1024 * 1024 * 1024;
 
-// Session memory cache for huge files (>500MB) or immediate active bundles
+// Session memory cache for huge files or immediate active bundles
 const sessionBlobs = new Map<string, Map<string, Blob>>();
 
 function openDb(): Promise<IDBDatabase> {
@@ -90,6 +91,12 @@ export async function loadModelBundleById(id: string): Promise<LoadedModelBundle
   if (!record) {
     db.close();
     return null;
+  }
+
+  // Native GGUF models are file-backed; their weights deliberately stay out of WebView memory/IndexedDB.
+  if (record.engine === 'llama-cpp-native' && record.nativePath) {
+    db.close();
+    return { record, files: new Map() };
   }
 
   // Check session cache first
