@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Local — On-Device AI",
+  "short_name": "Local",
+  "description": "Private ChatGPT & Claude-style AI chat for Android. Load .gguf models and .zip/.tar.gz model archives offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#191918",
+  "theme_color": "#191918",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

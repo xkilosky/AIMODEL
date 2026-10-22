@@ -1,0 +1,69 @@
+name: Build Local Android APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Local ARM64 Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install Android SDK 36, CMake 3.22.1 & NDK 29 (for native llama.cpp JNI)
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.22.1"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle & sync Capacitor Android
+        run: npm run android:sync
+
+      - name: Compile Android Debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../Local-Android.apk
+
+      - name: Upload Local-Android.apk Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Local-Android-APK
+          path: Local-Android.apk
+          if-no-files-found: error
+
+      - name: Publish Direct Phone Download Release (v1.0.0-apk)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v1.0.0-apk >/dev/null 2>&1; then
+            gh release upload v1.0.0-apk Local-Android.apk --clobber
+          else
+            gh release create v1.0.0-apk Local-Android.apk \
+              --target "${{ github.sha }}" \
+              --title "Local v1.0.0 — Android Mobile App (.apk)" \
+              --notes "Direct installable Android APK for **Local** (On-Device AI Chat for .gguf models & .zip/.tar.gz archives)."
+          fi
