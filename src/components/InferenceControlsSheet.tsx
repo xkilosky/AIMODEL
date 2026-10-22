@@ -64,6 +64,27 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() =>
+                onChange({
+                  ...settings,
+                  maxTokens: 256,
+                  contextSize: 2048,
+                  threads: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2)),
+                  gpuLayers: 0,
+                })
+              }
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--accent-soft)',
+                borderColor: 'var(--accent)',
+                color: 'var(--text-primary)',
+              }}
+              title="Use fewer phone resources. Unload and reload the model to apply."
+            >
+              <span>Phone-safe</span>
+            </button>
+            <button
+              type="button"
               onClick={() => onChange(DEFAULT_INFERENCE_SETTINGS)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border hover:opacity-85"
               style={{

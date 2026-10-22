@@ -221,10 +221,11 @@ export const DEFAULT_INFERENCE_SETTINGS: InferenceSettings = {
   topP: 0.92,
   topK: 40,
   repeatPenalty: 1.1,
-  maxTokens: 1024,
-  contextSize: 4096,
-  gpuLayers: 99,
-  threads: Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 4) - 1)),
+  // Conservative mobile defaults: leave headroom for Android and the browser UI.
+  maxTokens: 512,
+  contextSize: 2048,
+  gpuLayers: 0,
+  threads: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2)),
 };
 
 export function loadInferenceSettings(): InferenceSettings {

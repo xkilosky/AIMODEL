@@ -69,6 +69,24 @@ function createFreshConversation(): Conversation {
   };
 }
 
+function describeInferenceError(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const value = error as Record<string, unknown>;
+    if (typeof value.message === 'string') {
+      const code = typeof value.code === 'string' ? ` (${value.code})` : '';
+      return `${value.message}${code}`;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return Object.prototype.toString.call(error);
+    }
+  }
+  return String(error || 'Unknown runtime error');
+}
+
 const STARTER_PROMPTS = [
   {
     title: 'Summarize a file offline',
@@ -400,7 +418,8 @@ export const App: React.FC = () => {
         ),
       }));
     } catch (err: unknown) {
-      const errText = err instanceof Error ? err.message : 'Local inference failed.';
+      const detail = describeInferenceError(err);
+      const errText = `${detail}\n\nTry Settings → Phone-safe, unload the model, then load it again. If this model is over 1 GB, try a smaller Q4 GGUF model.`;
       updateConversationMessages(convId, (msgs) => ({
         messages: msgs.map((m) =>
           m.id === assistantMsgId

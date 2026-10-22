@@ -249,17 +249,56 @@ class LocalInferenceManager {
         if (first) ggufBlobs.push(first);
       }
 
-      const wllama = new Wllama(
-        { default: '/wasm/wllama.wasm' },
-        { suppressNativeLog: true, allowOffline: true }
-      );
-      wllama.setCompat(null);
+      const createWllama = () => {
+        const instance = new Wllama(
+          { default: '/wasm/wllama.wasm' },
+          { suppressNativeLog: true, allowOffline: true }
+        );
+        instance.setCompat(null);
+        return instance;
+      };
 
-      await wllama.loadModel(ggufBlobs, {
-        n_ctx: settings.contextSize,
-        n_gpu_layers: settings.gpuLayers,
-        n_threads: settings.threads,
-      });
+      let wllama = createWllama();
+      try {
+        await wllama.loadModel(ggufBlobs, {
+          n_ctx: settings.contextSize,
+          n_gpu_layers: settings.gpuLayers,
+          n_threads: settings.threads,
+        });
+      } catch (gpuError: unknown) {
+        // Phones often report WebGPU but cannot fit every model layer into GPU memory.
+        // Release the failed instance and retry conservatively on CPU with a smaller context.
+        if (settings.gpuLayers <= 0) throw gpuError;
+        try {
+          await wllama.exit();
+        } catch {
+          // The failed runtime may already be torn down.
+        }
+        onProgress?.({
+          stage: 'initializing',
+          percent: 88,
+          detail: 'GPU memory was insufficient. Retrying with phone-safe CPU settings...',
+        });
+        wllama = createWllama();
+        try {
+          await wllama.loadModel(ggufBlobs, {
+            n_ctx: Math.min(settings.contextSize, 2048),
+            n_gpu_layers: 0,
+            n_threads: Math.min(settings.threads, 2),
+          });
+        } catch (cpuError: unknown) {
+          try {
+            await wllama.exit();
+          } catch {
+            // Ignore cleanup errors.
+          }
+          const details =
+            cpuError instanceof Error ? cpuError.message : String(cpuError || gpuError);
+          throw new Error(
+            `This model could not fit into phone memory, even in CPU-safe mode. Try a smaller Q4 GGUF model (ideally under 1 GB). Runtime: ${details}`
+          );
+        }
+      }
 
       // Enrich specs from live wllama metadata
       try {
