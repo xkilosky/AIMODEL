@@ -563,7 +563,11 @@ export const App: React.FC = () => {
       }));
     } catch (err: unknown) {
       const detail = describeInferenceError(err);
-      const errText = `${detail}\n\nTry Settings → Phone-safe, unload the model, then load it again. If this model is over 1 GB, try a smaller Q4 GGUF model.`;
+      const isMemoryFailure = /out of memory|memory|allocation|alloc failed|mmap|failed to initialize/i.test(detail);
+      const followUp = isMemoryFailure
+        ? 'For a likely memory issue, try Settings → Phone-safe, unload the model, then load it again. A smaller quantized model may also help.'
+        : 'This does not look like a RAM-size error. If it repeats, share the model filename and this exact error so we can diagnose the model/runtime path.';
+      const errText = `${detail}\n\n${followUp}`;
       updateConversationMessages(convId, (msgs) => ({
         messages: msgs.map((m) =>
           m.id === assistantMsgId

@@ -95,6 +95,15 @@ export function splitReasoningFromText(raw: string): { content: string; reasonin
   };
 }
 
+function buildChatMlPrompt(
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+): string {
+  return (
+    messages.map((message) => `<|im_start|>${message.role}\n${message.content}<|im_end|>`).join('\n') +
+    '\n<|im_start|>assistant\n'
+  );
+}
+
 function buildEffectiveMessages(
   history: ChatMessage[],
   settings: InferenceSettings
@@ -429,12 +438,26 @@ class LocalInferenceManager {
 
     // 1. Native Android Capacitor Llama.cpp
     if (record.engine === 'llama-cpp-native' && this.nativeLlama) {
-      const formatted = await this.nativeLlama.getFormattedChat(
-        formattedMessages.map((m) => ({ role: m.role, content: m.content }))
-      );
+      // llama-cpp-capacitor 0.1.5's Android initContext response omits model.chatTemplates,
+      // while getFormattedChat() unconditionally dereferences it. Use a Qwen-compatible
+      // ChatML prompt on Android unless a future native plugin provides that metadata.
+      let prompt = buildChatMlPrompt(formattedMessages);
+      const chatTemplates = (this.nativeLlama.model as unknown as { chatTemplates?: unknown } | undefined)
+        ?.chatTemplates;
+      if (chatTemplates) {
+        try {
+          const formatted = await this.nativeLlama.getFormattedChat(
+            formattedMessages.map((m) => ({ role: m.role, content: m.content }))
+          );
+          if (formatted.prompt) prompt = formatted.prompt;
+        } catch {
+          // Fall back to ChatML for models whose chat template cannot be formatted natively.
+        }
+      }
       await this.nativeLlama.completion(
         {
-          prompt: formatted.prompt,
+          prompt,
+          stop: ['<|im_end|>', '<|endoftext|>'],
           n_predict: settings.maxTokens,
           temperature: settings.temperature,
           top_p: settings.topP,
