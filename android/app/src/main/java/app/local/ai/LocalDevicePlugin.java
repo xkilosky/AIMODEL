@@ -12,11 +12,11 @@ import android.util.Base64;
 
 import androidx.activity.result.ActivityResult;
 
-import com.getcapacitor.ActivityCallback;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.File;
