@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <rect width="256" height="256" rx="60" fill="#191918"/>
+  <rect x="14" y="14" width="228" height="228" rx="48" stroke="#D97757" stroke-opacity="0.22" stroke-width="3"/>
+  <defs>
+    <linearGradient id="localSpark" x1="56" y1="48" x2="200" y2="208" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E8926F"/>
+      <stop offset="55%" stop-color="#D97757"/>
+      <stop offset="100%" stop-color="#B85636"/>
+    </linearGradient>
+  </defs>
+  <!-- Enclosure vault ring representing local on-device containment -->
+  <path d="M128 48C83.8172 48 48 83.8172 48 128C48 172.183 83.8172 208 128 208C154.3 208 177.638 195.308 192.226 175.716" stroke="url(#localSpark)" stroke-width="14" stroke-linecap="round"/>
+  <!-- Geometric L + AI spark core -->
+  <path d="M106 88V146C106 151.523 110.477 156 116 156H162" stroke="#FAF9F5" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="176" cy="96" r="14" fill="url(#localSpark)"/>
+  <path d="M176 68V76M176 116V124M148 96H156M196 96H204" stroke="#E8926F" stroke-width="6" stroke-linecap="round"/>
+</svg>

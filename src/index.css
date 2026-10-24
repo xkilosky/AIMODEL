@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #191918;
+  --bg-sidebar: #131312;
+  --bg-surface: #232220;
+  --bg-elevated: #2c2b28;
+  --bg-user-bubble: #2e2d2a;
+  --bg-composer: #242321;
+  --border-subtle: rgba(255, 250, 240, 0.085);
+  --border-strong: rgba(255, 250, 240, 0.16);
+  --text-primary: #ece9e2;
+  --text-secondary: #a8a49c;
+  --text-muted: #78746c;
+  --accent: #d97757;
+  --accent-soft: rgba(217, 119, 87, 0.15);
+  --accent-text: #ffffff;
+  --code-bg: #121211;
+  --font-prose: 'Charter', 'Georgia', 'Cambria', 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
+[data-theme="claude-light"] {
+  --bg-main: #faf9f5;
+  --bg-sidebar: #f0eee6;
+  --bg-surface: #ffffff;
+  --bg-elevated: #edeae0;
+  --bg-user-bubble: #efede5;
+  --bg-composer: #ffffff;
+  --border-subtle: rgba(25, 25, 24, 0.09);
+  --border-strong: rgba(25, 25, 24, 0.18);
+  --text-primary: #191918;
+  --text-secondary: #57544d;
+  --text-muted: #87837a;
+  --accent: #c96442;
+  --accent-soft: rgba(201, 100, 66, 0.12);
+  --accent-text: #ffffff;
+  --code-bg: #1e1e1c;
+  --font-prose: 'Charter', 'Georgia', 'Cambria', 'Times New Roman', serif;
+}
+
+[data-theme="chatgpt-dark"] {
+  --bg-main: #212121;
+  --bg-sidebar: #171717;
+  --bg-surface: #2a2a2a;
+  --bg-elevated: #333333;
+  --bg-user-bubble: #2f2f2f;
+  --bg-composer: #2f2f2f;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-muted: #7d7d7d;
+  --accent: #10a37f;
+  --accent-soft: rgba(16, 163, 127, 0.15);
+  --accent-text: #ffffff;
+  --code-bg: #0d0d0d;
+  --font-prose: 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif;
+}
+
+[data-theme="chatgpt-light"] {
+  --bg-main: #ffffff;
+  --bg-sidebar: #f9f9f9;
+  --bg-surface: #f4f4f4;
+  --bg-elevated: #ebebeb;
+  --bg-user-bubble: #f4f4f4;
+  --bg-composer: #f4f4f4;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.15);
+  --text-primary: #0d0d0d;
+  --text-secondary: #5d5d5d;
+  --text-muted: #8e8e8e;
+  --accent: #10a37f;
+  --accent-soft: rgba(16, 163, 127, 0.12);
+  --accent-text: #ffffff;
+  --code-bg: #171717;
+  --font-prose: 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+
+.assistant-prose {
+  font-family: var(--font-prose);
+  font-size: 1.015rem;
+  line-height: 1.68;
+  letter-spacing: -0.004em;
+}
+
+[data-theme^="chatgpt"] .assistant-prose {
+  font-size: 0.965rem;
+  line-height: 1.65;
+}
+
+@keyframes pulseCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  vertical-align: text-bottom;
+  margin-left: 3px;
+  border-radius: 2px;
+  background-color: var(--accent);
+  animation: pulseCursor 0.95s ease-in-out infinite;
+}
+
+/* Safe area padding utilities for Android gesture bar & camera cutouts */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
