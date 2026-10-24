@@ -1,12 +1,15 @@
 import React from 'react';
-import { RotateCcw, SlidersHorizontal, X } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Cpu, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import type { InferenceSettings } from '../types/local';
 import { DEFAULT_INFERENCE_SETTINGS } from '../services/modelStorage';
+import { recommendedCpuThreads } from '../services/nativeDevice';
 
 interface InferenceControlsSheetProps {
   isOpen: boolean;
   onClose: () => void;
   settings: InferenceSettings;
+  hardwareConcurrency?: number;
   onChange: (next: InferenceSettings) => void;
 }
 
@@ -36,12 +39,17 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
   isOpen,
   onClose,
   settings,
+  hardwareConcurrency,
   onChange,
 }) => {
   if (!isOpen) return null;
 
   const update = <K extends keyof InferenceSettings>(key: K, value: InferenceSettings[K]) => {
-    onChange({ ...settings, [key]: value });
+    onChange({
+      ...settings,
+      [key]: value,
+      ...(key === 'threads' ? { threadMode: 'manual' as const } : {}),
+    });
   };
 
   return (
@@ -59,7 +67,7 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
         >
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h2 className="text-base font-semibold">Model & Sampling Controls</h2>
+            <h2 className="text-base font-semibold">Model Controls</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -69,7 +77,8 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
                   ...settings,
                   maxTokens: 256,
                   contextSize: 2048,
-                  threads: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2)),
+                  threads: Math.min(2, recommendedCpuThreads(hardwareConcurrency)),
+                  threadMode: 'manual',
                   gpuLayers: 0,
                 })
               }
@@ -79,9 +88,32 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
                 borderColor: 'var(--accent)',
                 color: 'var(--text-primary)',
               }}
-              title="Use fewer phone resources. Unload and reload the model to apply."
+              title="Use a conservative CPU setting and reduce heat. Unload and reload the model to apply."
             >
-              <span>Phone-safe</span>
+              <span>Safe</span>
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...settings,
+                  maxTokens: 512,
+                  contextSize: 2048,
+                  threads: recommendedCpuThreads(hardwareConcurrency),
+                  threadMode: 'auto',
+                  gpuLayers: 0,
+                })
+              }
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--accent-soft)',
+                borderColor: 'var(--accent)',
+                color: 'var(--text-primary)',
+              }}
+              title="Use the phone's detected CPU cores. Unload and reload the model to apply."
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Fast</span>
             </button>
             <button
               type="button"
@@ -219,7 +251,7 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
               max={8}
               step={1}
               display={String(settings.threads)}
-              hint="Android big.LITTLE worker threads"
+              hint={settings.threadMode === 'auto' ? 'Auto: all detected logical CPU cores' : 'Manual CPU worker count; reload model to apply'}
               onChange={(v) => update('threads', v)}
             />
             <SliderField
@@ -233,6 +265,18 @@ export const InferenceControlsSheet: React.FC<InferenceControlsSheetProps> = ({
               onChange={(v) => update('gpuLayers', v)}
             />
           </div>
+          {Capacitor.isNativePlatform() && (
+            <div
+              className="rounded-xl border px-3 py-2.5 leading-relaxed"
+              style={{
+                backgroundColor: 'var(--accent-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Fast mode uses all logical CPU cores Android reports; this may increase heat or battery use. Native Android GGUF currently runs on CPU; the GPU-layer control cannot accelerate this native backend yet. Thread changes apply after reloading the model.
+            </div>
+          )}
         </div>
       </div>
     </div>

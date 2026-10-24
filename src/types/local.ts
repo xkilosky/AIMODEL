@@ -61,6 +61,8 @@ export interface InferenceSettings {
   contextSize: number;
   gpuLayers: number;
   threads: number;
+  /** Auto follows detected CPU cores; manual means the user selected a thread count. */
+  threadMode?: 'auto' | 'manual';
 }
 
 export interface ChatAttachment {

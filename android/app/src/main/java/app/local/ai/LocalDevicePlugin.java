@@ -47,6 +47,7 @@ public class LocalDevicePlugin extends Plugin {
         result.put("model", Build.MODEL == null ? "Android device" : Build.MODEL);
         result.put("androidVersion", Build.VERSION.RELEASE == null ? "Unknown" : Build.VERSION.RELEASE);
         result.put("apiLevel", Build.VERSION.SDK_INT);
+        result.put("hardwareConcurrency", Runtime.getRuntime().availableProcessors());
         result.put("totalRamBytes", memory.totalMem);
         result.put("availableRamBytes", memory.availMem);
         result.put("lowMemory", memory.lowMemory);

@@ -134,6 +134,48 @@ function buildEffectiveMessages(
   return out;
 }
 
+/**
+ * Keep the prompt inside a mobile-sized context window. Re-sending the full conversation on
+ * every turn can make a small model appear to stall, even when token generation is fast.
+ * The estimate is intentionally conservative for code and multilingual text.
+ */
+function fitMessagesToContext(
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+  contextSize: number,
+  requestedOutputTokens: number
+): { messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>; outputTokens: number } {
+  const outputTokens = Math.max(64, Math.min(requestedOutputTokens, Math.max(64, contextSize - 128)));
+  const inputTokenBudget = Math.max(128, contextSize - outputTokens - 64);
+  const charsPerToken = 3;
+  const estimateTokens = (content: string) => Math.ceil(content.length / charsPerToken) + 8;
+  const system = messages.filter((message) => message.role === 'system');
+  const history = messages.filter((message) => message.role !== 'system');
+  let remaining = Math.max(64, inputTokenBudget - system.reduce((sum, item) => sum + estimateTokens(item.content), 0));
+  const kept: typeof history = [];
+
+  for (let i = history.length - 1; i >= 0; i--) {
+    const message = history[i];
+    const cost = estimateTokens(message.content);
+    if (cost <= remaining) {
+      kept.unshift(message);
+      remaining -= cost;
+      continue;
+    }
+
+    // Always retain the newest request, but cap an oversized attachment/prompt excerpt.
+    if (kept.length === 0 && remaining > 24) {
+      const excerpt = message.content.slice(0, Math.max(120, (remaining - 12) * charsPerToken));
+      kept.unshift({
+        ...message,
+        content: `${excerpt}\n\n[Older or excess context was trimmed to fit this phone's context window.]`,
+      });
+    }
+    break;
+  }
+
+  return { messages: [...system, ...kept], outputTokens };
+}
+
 class LocalInferenceManager {
   private activeBundle: LoadedModelBundle | null = null;
   private wllama: Wllama | null = null;
@@ -420,7 +462,12 @@ class LocalInferenceManager {
 
     this.currentAbortController = new AbortController();
     const signal = this.currentAbortController.signal;
-    const formattedMessages = buildEffectiveMessages(history, settings);
+    const fitted = fitMessagesToContext(
+      buildEffectiveMessages(history, settings),
+      settings.contextSize,
+      settings.maxTokens
+    );
+    const formattedMessages = fitted.messages;
 
     const startTime = performance.now();
     let firstTokenTime = 0;
@@ -457,8 +504,9 @@ class LocalInferenceManager {
       const nativeResult = await this.nativeLlama.completion(
         {
           prompt,
+          n_threads: settings.threads,
           stop: ['<|im_end|>', '<|endoftext|>'],
-          n_predict: settings.maxTokens,
+          n_predict: fitted.outputTokens,
           temperature: settings.temperature,
           top_p: settings.topP,
           top_k: settings.topK,
@@ -492,7 +540,7 @@ class LocalInferenceManager {
           top_p: settings.topP,
           top_k: settings.topK,
           penalty_repeat: settings.repeatPenalty,
-          max_tokens: settings.maxTokens,
+          max_tokens: fitted.outputTokens,
           abortSignal: signal,
         });
 
@@ -517,7 +565,7 @@ class LocalInferenceManager {
             top_p: settings.topP,
             top_k: settings.topK,
             penalty_repeat: settings.repeatPenalty,
-            max_tokens: settings.maxTokens,
+            max_tokens: fitted.outputTokens,
             stop: ['<|im_end|>', '<|endoftext|>', '</s>'],
             abortSignal: signal,
           });
@@ -541,7 +589,7 @@ class LocalInferenceManager {
       });
 
       await this.onnxGenerator(formattedMessages, {
-        max_new_tokens: settings.maxTokens,
+        max_new_tokens: fitted.outputTokens,
         temperature: settings.temperature,
         top_p: settings.topP,
         top_k: settings.topK,

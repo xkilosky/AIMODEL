@@ -54,6 +54,7 @@ import {
   deleteNativeStoredModel,
   getDeviceProfile,
   getModelFitAssessment,
+  recommendedCpuThreads,
   MAX_LOCAL_MODEL_BYTES,
   pickAndStoreNativeGguf,
   type DeviceProfile,
@@ -200,6 +201,13 @@ export const App: React.FC = () => {
     setStoredModels(list);
     setStorageInfo(quota);
     setDeviceProfile(profile);
+    if (profile.hardwareConcurrency) {
+      setSettings((current) =>
+        current.threadMode === 'auto'
+          ? { ...current, threads: recommendedCpuThreads(profile.hardwareConcurrency) }
+          : current
+      );
+    }
   };
 
   useEffect(() => {
@@ -1243,6 +1251,7 @@ export const App: React.FC = () => {
         isOpen={controlsOpen}
         onClose={() => setControlsOpen(false)}
         settings={settings}
+        hardwareConcurrency={deviceProfile?.hardwareConcurrency}
         onChange={setSettings}
       />
 

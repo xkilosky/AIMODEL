@@ -1,3 +1,4 @@
+import { recommendedCpuThreads } from './nativeDevice';
 import type {
   Conversation,
   InferenceSettings,
@@ -228,18 +229,28 @@ export const DEFAULT_INFERENCE_SETTINGS: InferenceSettings = {
   topP: 0.92,
   topK: 40,
   repeatPenalty: 1.1,
-  // Conservative mobile defaults: leave headroom for Android and the browser UI.
+  // Auto uses all reported CPU cores; Phone-safe is available to reduce heat and battery use.
   maxTokens: 512,
   contextSize: 2048,
   gpuLayers: 0,
-  threads: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2)),
+  threads: recommendedCpuThreads(),
+  threadMode: 'auto',
 };
 
 export function loadInferenceSettings(): InferenceSettings {
   try {
     const raw = localStorage.getItem(LS_SETTINGS);
     if (!raw) return DEFAULT_INFERENCE_SETTINGS;
-    return { ...DEFAULT_INFERENCE_SETTINGS, ...JSON.parse(raw) };
+    const saved = JSON.parse(raw) as Partial<InferenceSettings>;
+    // Older releases stored a conservative 1–2 thread default without distinguishing
+    // it from a user choice. Treat that legacy default as Auto so existing installs
+    // benefit from the detected-core setting; future slider changes are marked manual.
+    const legacyDefault = Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2));
+    const threadMode = saved.threadMode || 'auto';
+    const threads = threadMode === 'auto' && saved.threads === legacyDefault
+      ? recommendedCpuThreads()
+      : saved.threads;
+    return { ...DEFAULT_INFERENCE_SETTINGS, ...saved, threadMode, threads: threads || DEFAULT_INFERENCE_SETTINGS.threads };
   } catch {
     return DEFAULT_INFERENCE_SETTINGS;
   }

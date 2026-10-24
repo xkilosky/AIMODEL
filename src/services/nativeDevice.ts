@@ -2,6 +2,12 @@ import { registerPlugin, Capacitor, type PluginListenerHandle } from '@capacitor
 
 export const MAX_LOCAL_MODEL_BYTES = 8 * 1024 * 1024 * 1024;
 
+/** Use all reported logical cores in Fast/Auto mode; users can lower this to reduce heat. */
+export function recommendedCpuThreads(cores?: number): number {
+  const detected = Math.floor(cores || (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 0) || 4);
+  return Math.max(1, Math.min(8, detected));
+}
+
 export interface DeviceProfile {
   manufacturer?: string;
   model?: string;
