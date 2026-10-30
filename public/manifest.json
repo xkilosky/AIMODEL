@@ -1,14 +1,14 @@
 {
   "id": "/",
-  "name": "Local — On-Device AI",
-  "short_name": "Local",
+  "name": "Linor — On-Device AI",
+  "short_name": "Linor",
   "description": "Private ChatGPT & Claude-style AI chat for Android. Load .gguf models and .zip/.tar.gz model archives offline.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#191918",
-  "theme_color": "#191918",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "icons": [
     {
       "src": "/icon-192.png",

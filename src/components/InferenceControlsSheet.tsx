@@ -31,7 +31,7 @@ const SYSTEM_PRESETS: Array<{ label: string; prompt: string }> = [
   {
     label: 'Español / Bilingual',
     prompt:
-      'Eres Local, un asistente de IA privado que funciona 100% sin conexión en el dispositivo Android del usuario. Responde en el mismo idioma del usuario con claridad y precisión.',
+      'Eres Linor, un asistente de IA privado que funciona 100% sin conexión en el dispositivo Android del usuario. Responde en el mismo idioma del usuario con claridad y precisión.',
   },
 ];
 
@@ -324,7 +324,7 @@ const SliderField: React.FC<SliderFieldProps> = ({
       step={step}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full accent-amber-600 cursor-pointer"
+      className="w-full accent-black cursor-pointer"
     />
     <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
       {hint}

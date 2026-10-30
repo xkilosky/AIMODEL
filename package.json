@@ -1,8 +1,8 @@
 {
-  "name": "local-ai-app",
+  "name": "linor-ai-app",
   "private": true,
   "version": "1.0.0",
-  "description": "Local — Private On-Device AI Chat for Android & Web. Load .gguf models and .zip/.tar.gz ONNX/Transformers archives directly from device storage.",
+  "description": "Linor \u2014 Private On-Device AI Chat for Android & Web. Load .gguf models and .zip/.tar.gz ONNX/Transformers archives directly from device storage.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",

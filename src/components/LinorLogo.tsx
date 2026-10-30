@@ -1,11 +1,11 @@
 import React from 'react';
 
-interface LocalLogoProps {
+interface LinorLogoProps {
   size?: number;
   className?: string;
 }
 
-export const LocalLogo: React.FC<LocalLogoProps> = ({ size = 28, className = '' }) => {
+export const LinorLogo: React.FC<LinorLogoProps> = ({ size = 28, className = '' }) => {
   return (
     <svg
       width={size}

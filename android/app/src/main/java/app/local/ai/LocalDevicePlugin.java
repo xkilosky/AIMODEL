@@ -88,19 +88,19 @@ public class LocalDevicePlugin extends Plugin {
             return;
         }
         if (sourceBytes > MAX_MODEL_LIBRARY_BYTES) {
-            call.reject("This model exceeds Local's 8 GB on-device model-library limit.");
+            call.reject("This model exceeds Linor's 8 GB on-device model-library limit.");
             return;
         }
 
         File modelDir = getModelsDirectory();
         long currentlyStored = getStoredModelsBytes(modelDir);
         if (currentlyStored + sourceBytes > MAX_MODEL_LIBRARY_BYTES) {
-            call.reject("The 8 GB Local model-library limit would be exceeded. Delete an unused model first.");
+            call.reject("The 8 GB Linor model-library limit would be exceeded. Delete an unused model first.");
             return;
         }
         StatFs stat = new StatFs(modelDir.getAbsolutePath());
         if (sourceBytes + MIN_FREE_SPACE_RESERVE > stat.getAvailableBytes()) {
-            call.reject("Not enough free phone storage. Local keeps 256 MB free for Android and model setup.");
+            call.reject("Not enough free phone storage. Linor keeps 256 MB free for Android and model setup.");
             return;
         }
 
@@ -156,7 +156,7 @@ public class LocalDevicePlugin extends Plugin {
             getBridge().executeOnMainThread(() -> call.resolve(response));
         } catch (Exception e) {
             if (destination.exists()) destination.delete();
-            String message = "Could not copy model into Local storage: " + e.getMessage();
+            String message = "Could not copy model into Linor storage: " + e.getMessage();
             getBridge().executeOnMainThread(() -> call.reject(message, e));
         }
     }
@@ -172,7 +172,7 @@ public class LocalDevicePlugin extends Plugin {
             File modelDir = getModelsDirectory().getCanonicalFile();
             File target = new File(path).getCanonicalFile();
             if (!target.getPath().startsWith(modelDir.getPath() + File.separator)) {
-                call.reject("Refusing to delete a file outside Local model storage.");
+                call.reject("Refusing to delete a file outside Linor model storage.");
                 return;
             }
             if (target.exists() && !target.delete()) {

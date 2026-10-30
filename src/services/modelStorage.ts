@@ -224,7 +224,7 @@ export function saveConversations(conversations: Conversation[]): void {
 
 export const DEFAULT_INFERENCE_SETTINGS: InferenceSettings = {
   systemPrompt:
-    'You are Local, a helpful, thoughtful, private AI assistant running 100% locally on the user\'s device. Give clear, well-structured, accurate answers using clean Markdown formatting.',
+    'You are Linor, a helpful, thoughtful, private AI assistant running 100% locally on the user\'s device. Give clear, well-structured, accurate answers using clean Markdown formatting.',
   temperature: 0.7,
   topP: 0.92,
   topK: 40,
@@ -266,15 +266,16 @@ export function saveInferenceSettings(settings: InferenceSettings): void {
 
 export function loadSavedTheme(): ThemeId {
   const saved = localStorage.getItem(LS_THEME) as ThemeId | null;
+  if (saved === 'claude-dark') return 'linor-light';
   if (
-    saved === 'claude-dark' ||
+    saved === 'linor-light' ||
     saved === 'claude-light' ||
     saved === 'chatgpt-dark' ||
     saved === 'chatgpt-light'
   ) {
     return saved;
   }
-  return 'claude-dark';
+  return 'linor-light';
 }
 
 export function saveTheme(theme: ThemeId): void {

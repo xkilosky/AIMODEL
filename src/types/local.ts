@@ -1,4 +1,4 @@
-export type ThemeId = 'claude-dark' | 'claude-light' | 'chatgpt-dark' | 'chatgpt-light';
+export type ThemeId = 'linor-light' | 'claude-dark' | 'claude-light' | 'chatgpt-dark' | 'chatgpt-light';
 
 export type EngineKind =
   | 'llama-cpp-native'

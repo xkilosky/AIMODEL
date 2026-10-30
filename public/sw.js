@@ -1,4 +1,4 @@
-const CACHE_NAME = 'local-ai-shell-v1';
+const CACHE_NAME = 'linor-ai-shell-v2';
 const PRECACHE_URLS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

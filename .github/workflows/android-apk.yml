@@ -1,4 +1,4 @@
-name: Build Local Android APK
+name: Build Linor Android APK
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build Local ARM64 Android APK
+    name: Build Linor ARM64 Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -46,13 +46,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../Local-Android.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../Linor-Android.apk
 
-      - name: Upload Local-Android.apk Artifact
+      - name: Upload Linor-Android.apk Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Local-Android-APK
-          path: Local-Android.apk
+          name: Linor-Android-APK
+          path: Linor-Android.apk
           if-no-files-found: error
 
       - name: Publish Direct Phone Download Release (v1.0.0-apk)
@@ -60,10 +60,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view v1.0.0-apk >/dev/null 2>&1; then
-            gh release upload v1.0.0-apk Local-Android.apk --clobber
+            gh release delete-asset v1.0.0-apk Local-Android.apk --yes >/dev/null 2>&1 || true
+            gh release upload v1.0.0-apk Linor-Android.apk --clobber
           else
-            gh release create v1.0.0-apk Local-Android.apk \
+            gh release create v1.0.0-apk Linor-Android.apk \
               --target "${{ github.sha }}" \
-              --title "Local v1.0.0 — Android Mobile App (.apk)" \
-              --notes "Direct installable Android APK for **Local** (On-Device AI Chat for .gguf models & .zip/.tar.gz archives)."
+              --title "Linor v1.0.0 — Android Mobile App (.apk)" \
+              --notes "Direct installable Android APK for **Linor** (On-Device AI Chat for .gguf models & .zip/.tar.gz archives)."
           fi

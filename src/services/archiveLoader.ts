@@ -216,7 +216,7 @@ export async function processPickedModelFiles(
     engine = 'compact-local';
     specs = {
       format: 'LocalPack',
-      modelName: packJson.name || 'Local Starter Assistant',
+      modelName: packJson.name || 'Linor Starter Assistant',
       architecture: packJson.architecture || 'compact-transformer',
       parameterCount: packJson.parameters || 'Compact Pack',
       quantization: packJson.quantization || 'INT8-Pack',
@@ -350,13 +350,13 @@ export async function processPickedModelFiles(
 }
 
 /**
- * Generates a real, standards-compliant .zip archive (`local-starter-assistant.zip`)
+ * Generates a real, standards-compliant .zip archive (`linor-starter-assistant.zip`)
  * so users can test downloading & picking a compressed model archive from their Android
  * Downloads / Files picker immediately, even before downloading a multi-hundred-MB .gguf!
  */
 export function buildSampleModelArchiveZip(): Uint8Array {
   const manifest = {
-    name: 'Local Starter Compact v1',
+    name: 'Linor Starter Compact v1',
     format: 'local-compact-pack',
     version: '1.0.0',
     architecture: 'compact-instruct-pack',
@@ -396,10 +396,10 @@ export function buildSampleModelArchiveZip(): Uint8Array {
   }
 
   const readme = [
-    '# Local Starter Compact Archive (.zip)',
+    '# Linor Starter Compact Archive (.zip)',
     '',
     'This portable archive verifies end-to-end .zip archive extraction, IndexedDB persistence,',
-    'binary inspection, and streaming chat inside the Local Android app.',
+    'binary inspection, and streaming chat inside the Linor Android app.',
     '',
     'For full LLM weights on Android, pick any `.gguf` file (e.g. Qwen2.5-1.5B-Instruct-Q4_K_M.gguf,',
     'Llama-3.2-1B-Instruct-Q4_K_M.gguf, SmolLM2-360M-Instruct-Q8_0.gguf) or an ONNX Transformers `.zip` archive!',

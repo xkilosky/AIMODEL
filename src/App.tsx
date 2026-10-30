@@ -59,7 +59,7 @@ import {
   pickAndStoreNativeGguf,
   type DeviceProfile,
 } from './services/nativeDevice';
-import { LocalLogo } from './components/LocalLogo';
+import { LinorLogo } from './components/LinorLogo';
 import { MarkdownMessage } from './components/MarkdownMessage';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { ModelArchiveModal } from './components/ModelArchiveModal';
@@ -103,7 +103,7 @@ const STARTER_PROMPTS = [
   {
     title: 'Summarize a file offline',
     subtitle: 'Attach notes, JSON, or code privately',
-    prompt: 'Explain how I can analyze local documents and code files completely offline in Local.',
+    prompt: 'Explain how I can analyze local documents and code files completely offline in Linor.',
   },
   {
     title: 'Write clean TypeScript',
@@ -274,11 +274,11 @@ export const App: React.FC = () => {
     try {
       const bundle = await processPickedModelFiles(files, setLoaderProgress);
       if (bundle.record.totalBytes > MAX_LOCAL_MODEL_BYTES) {
-        throw new Error('This model is larger than Local’s 8 GB per-device model-library limit.');
+        throw new Error('This model is larger than Linor’s 8 GB per-device model-library limit.');
       }
       const libraryBytes = storedModels.reduce((sum, model) => sum + model.totalBytes, 0);
       if (libraryBytes + bundle.record.totalBytes > MAX_MODEL_LIBRARY_BYTES) {
-        throw new Error('The Local model library is limited to 8 GB total. Delete a model before adding another.');
+        throw new Error('The Linor model library is limited to 8 GB total. Delete a model before adding another.');
       }
       if (!confirmModelFit(bundle.record)) {
         setLoaderProgress(null);
@@ -340,14 +340,14 @@ export const App: React.FC = () => {
         setLoaderProgress({
           stage: 'caching',
           percent: 5 + percent,
-          detail: `Copying model into Local storage: ${formatBytes(bytesCopied)} / ${formatBytes(totalBytes)}…`,
+          detail: `Copying model into Linor storage: ${formatBytes(bytesCopied)} / ${formatBytes(totalBytes)}…`,
         });
       });
       picked = await pickAndStoreNativeGguf();
       setLoaderProgress({
         stage: 'caching',
         percent: 40,
-        detail: `Copied ${picked.name} (${formatBytes(picked.sizeBytes)}) into Local’s file-backed model storage.`,
+        detail: `Copied ${picked.name} (${formatBytes(picked.sizeBytes)}) into Linor’s file-backed model storage.`,
       });
 
       const raw = atob(picked.headerBase64);
@@ -372,7 +372,7 @@ export const App: React.FC = () => {
       const libraryBytes = storedModels.reduce((sum, model) => sum + model.totalBytes, 0);
       if (libraryBytes + record.totalBytes > MAX_MODEL_LIBRARY_BYTES) {
         await deleteNativeStoredModel(picked.path);
-        throw new Error('The Local model library is limited to 8 GB total. Delete a model before adding another.');
+        throw new Error('The Linor model library is limited to 8 GB total. Delete a model before adding another.');
       }
       if (!confirmModelFit(record)) {
         await deleteNativeStoredModel(picked.path);
@@ -467,14 +467,14 @@ export const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'local-starter-assistant.zip';
+    a.download = 'linor-starter-assistant.zip';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
   const handleQuickLoadStarter = async () => {
     const zipBytes = buildSampleModelArchiveZip();
-    const file = new File([zipBytes as BlobPart], 'local-starter-assistant.zip', {
+    const file = new File([zipBytes as BlobPart], 'linor-starter-assistant.zip', {
       type: 'application/zip',
     });
     await handlePickedModelFiles([file]);
@@ -679,10 +679,10 @@ export const App: React.FC = () => {
   const handleExportConversation = (conv: Conversation) => {
     const md = [
       `# ${conv.title}`,
-      `_Exported from Local (On-Device AI) — ${new Date(conv.updatedAt).toLocaleString()}_`,
+      `_Exported from Linor (On-Device AI) — ${new Date(conv.updatedAt).toLocaleString()}_`,
       '',
       ...conv.messages.map(
-        (m) => `### ${m.role === 'user' ? 'You' : m.modelName || 'Local'}\n\n${m.content}\n`
+        (m) => `### ${m.role === 'user' ? 'You' : m.modelName === 'Local' ? 'Linor' : m.modelName || 'Linor'}\n\n${m.content}\n`
       ),
     ].join('\n');
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
@@ -779,7 +779,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setAndroidModalOpen(true)}
-            title="Install Local on your phone (APK or 1-Tap App)"
+            title="Install Linor on your phone (APK or 1-Tap App)"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-opacity hover:opacity-85"
             style={{
               backgroundColor: 'var(--accent-soft)',
@@ -844,10 +844,10 @@ export const App: React.FC = () => {
             /* Empty Welcome State (Claude / ChatGPT Android Style) */
             <div className="min-h-[62vh] flex flex-col items-center justify-center text-center space-y-6 py-4">
               <div className="space-y-3 flex flex-col items-center">
-                <LocalLogo size={54} />
+                <LinorLogo size={54} />
                 <div className="space-y-1">
                   <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                    {activeModel ? 'How can I help locally?' : 'Welcome to Local'}
+                    {activeModel ? 'How can I help locally?' : 'Welcome to Linor'}
                   </h1>
                   <p
                     className="text-xs sm:text-sm max-w-md mx-auto leading-relaxed"
@@ -1008,11 +1008,11 @@ export const App: React.FC = () => {
                 return (
                   <div key={msg.id} className="flex items-start gap-3">
                     <div className="mt-0.5 shrink-0">
-                      <LocalLogo size={26} />
+                      <LinorLogo size={26} />
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold">{msg.modelName || 'Local'}</span>
+                        <span className="font-semibold">{msg.modelName === 'Local' ? 'Linor' : msg.modelName || 'Linor'}</span>
                         {msg.metrics && (
                           <span
                             className="inline-flex items-center gap-1 text-[11px] font-mono"

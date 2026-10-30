@@ -277,7 +277,7 @@ export const ModelArchiveModal: React.FC<ModelArchiveModalProps> = ({
                   type="checkbox"
                   checked={persistToDevice}
                   onChange={(e) => onTogglePersist(e.target.checked)}
-                  className="rounded accent-amber-600"
+                  className="rounded accent-black"
                 />
                 <span style={{ color: 'var(--text-secondary)' }}>
                   Save archive in on-device storage (IndexedDB)
@@ -375,7 +375,7 @@ export const ModelArchiveModal: React.FC<ModelArchiveModalProps> = ({
                 <span>Need a sample .zip archive to test right now?</span>
               </div>
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Export a lightweight <code className="font-mono">local-starter-assistant.zip</code>{' '}
+                Export a lightweight <code className="font-mono">linor-starter-assistant.zip</code>{' '}
                 to your Downloads folder to test archive picking, or mount it in one tap.
               </p>
             </div>

@@ -1,24 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --bg-main: #191918;
-  --bg-sidebar: #131312;
-  --bg-surface: #232220;
-  --bg-elevated: #2c2b28;
-  --bg-user-bubble: #2e2d2a;
-  --bg-composer: #242321;
-  --border-subtle: rgba(255, 250, 240, 0.085);
-  --border-strong: rgba(255, 250, 240, 0.16);
-  --text-primary: #ece9e2;
-  --text-secondary: #a8a49c;
-  --text-muted: #78746c;
-  --accent: #d97757;
-  --accent-soft: rgba(217, 119, 87, 0.15);
+  /* Linor's primary identity is white with black as its secondary/ink color. */
+  --bg-main: #ffffff;
+  --bg-sidebar: #f7f7f7;
+  --bg-surface: #f3f3f3;
+  --bg-elevated: #ebebeb;
+  --bg-user-bubble: #eeeeee;
+  --bg-composer: #f5f5f5;
+  --border-subtle: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.17);
+  --text-primary: #080808;
+  --text-secondary: #414141;
+  --text-muted: #707070;
+  --accent: #000000;
+  --accent-soft: rgba(0, 0, 0, 0.08);
   --accent-text: #ffffff;
-  --code-bg: #121211;
+  --code-bg: #111111;
   --font-prose: 'Charter', 'Georgia', 'Cambria', 'Times New Roman', serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', Menlo, Consolas, monospace;
+}
+
+[data-theme="linor-light"] {
+  --bg-main: #ffffff;
+  --bg-sidebar: #f7f7f7;
+  --bg-surface: #f3f3f3;
+  --bg-elevated: #ebebeb;
+  --bg-user-bubble: #eeeeee;
+  --bg-composer: #f5f5f5;
+  --border-subtle: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.17);
+  --text-primary: #080808;
+  --text-secondary: #414141;
+  --text-muted: #707070;
+  --accent: #000000;
+  --accent-soft: rgba(0, 0, 0, 0.08);
+  --accent-text: #ffffff;
+  --code-bg: #111111;
+  --font-prose: 'Charter', 'Georgia', 'Cambria', 'Times New Roman', serif;
 }
 
 [data-theme="claude-light"] {

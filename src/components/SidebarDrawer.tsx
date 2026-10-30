@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Conversation, StoredModelRecord, ThemeId } from '../types/local';
-import { LocalLogo } from './LocalLogo';
+import { LinorLogo } from './LinorLogo';
 import { formatBytes } from '../services/binaryInspectors';
 
 interface SidebarDrawerProps {
@@ -34,6 +34,7 @@ interface SidebarDrawerProps {
 }
 
 const THEMES: Array<{ id: ThemeId; label: string; dot: string }> = [
+  { id: 'linor-light', label: 'Linor White', dot: '#000000' },
   { id: 'claude-dark', label: 'Claude Dark', dot: '#d97757' },
   { id: 'claude-light', label: 'Claude Warm', dot: '#c96442' },
   { id: 'chatgpt-dark', label: 'GPT Dark', dot: '#10a37f' },
@@ -92,9 +93,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
         {/* Top Brand Row */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
           <div className="flex items-center gap-2.5">
-            <LocalLogo size={30} />
+            <LinorLogo size={30} />
             <div>
-              <div className="font-semibold text-base leading-none tracking-tight">Local</div>
+              <div className="font-semibold text-base leading-none tracking-tight">Linor</div>
               <div className="text-[10px] mt-1 font-medium" style={{ color: 'var(--accent)' }}>
                 100% On-Device AI
               </div>

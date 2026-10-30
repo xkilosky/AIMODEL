@@ -30,7 +30,7 @@ interface AndroidInstallModalProps {
 
 const GITHUB_ACTIONS_URL = 'https://github.com/xkilosky/AIMODEL/actions';
 const APK_RELEASE_URL =
-  'https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Local-Android.apk';
+  'https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Linor-Android.apk';
 
 export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
   isOpen,
@@ -80,7 +80,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               <Smartphone className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold">Load Local on Your Phone</h2>
+              <h2 className="text-base font-semibold">Load Linor on Your Phone</h2>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 Install as a Fullscreen Android App (WebAPK or Native .apk)
               </p>
@@ -121,7 +121,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
                 }}
               >
                 <Smartphone className="w-4 h-4" />
-                <span>Install Local App Now (1-Tap)</span>
+                <span>Install Linor App Now (1-Tap)</span>
               </button>
             ) : (
               <div className="space-y-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -130,7 +130,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
                   Open this app&apos;s URL in Chrome on your phone → tap{' '}
                   <strong>Menu (⋮)</strong> in the top-right → tap{' '}
                   <strong>Install app / Add to Home screen</strong>. Android installs{' '}
-                  <strong>Local</strong> into your App Drawer as a standalone fullscreen app!
+                  <strong>Linor</strong> into your App Drawer as a standalone fullscreen app!
                 </p>
                 <p>
                   <strong style={{ color: 'var(--text-primary)' }}>On iPhone (Safari):</strong>{' '}
@@ -164,7 +164,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
               style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
             >
               <Download className="w-4 h-4" />
-              <span>Download Local Android APK</span>
+              <span>Download Linor Android APK</span>
             </a>
             <a
               href={GITHUB_ACTIONS_URL}

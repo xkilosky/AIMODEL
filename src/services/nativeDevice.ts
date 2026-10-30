@@ -118,7 +118,7 @@ export async function addNativeModelCopyProgressListener(
 
 export async function pickAndStoreNativeGguf(): Promise<NativePickedModel> {
   if (!Capacitor.isNativePlatform()) {
-    throw new Error('Native Android model-file storage is only available in the Local APK.');
+    throw new Error('Native Android model-file storage is only available in the Linor APK.');
   }
   return NativeDevice.pickAndStoreGguf();
 }
