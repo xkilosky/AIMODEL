@@ -61,10 +61,10 @@ public class LocalDevicePlugin extends Plugin {
         SharedPreferences preferences = getContext().getSharedPreferences(UPDATE_PREFS, Activity.MODE_PRIVATE);
         long previousId = preferences.getLong("download_id", -1L);
         if (previousId >= 0) {
-            JSObject previous = queryUpdateDownload(manager, previousId,
-                preferences.getString("file_name", ""));
-            String previousState = previous.optString("state", "");
             String previousVersion = preferences.getString("version_code", "");
+            JSObject previous = queryUpdateDownload(manager, previousId,
+                preferences.getString("file_name", ""), previousVersion);
+            String previousState = previous.optString("state", "");
             if (versionCode.equals(previousVersion)
                     && ("queued".equals(previousState) || "downloading".equals(previousState)
                     || "downloaded".equals(previousState))) {
@@ -87,7 +87,7 @@ public class LocalDevicePlugin extends Plugin {
             long id = manager.enqueue(request);
             preferences.edit().putLong("download_id", id).putString("file_name", fileName)
                 .putString("version_code", versionCode).apply();
-            call.resolve(queryUpdateDownload(manager, id, fileName));
+            call.resolve(queryUpdateDownload(manager, id, fileName, versionCode));
         } catch (Exception e) {
             call.reject("Could not start the update download: " + e.getMessage(), e);
         }
@@ -108,7 +108,8 @@ public class LocalDevicePlugin extends Plugin {
             call.reject("Android download service is unavailable.");
             return;
         }
-        call.resolve(queryUpdateDownload(manager, id, preferences.getString("file_name", "")));
+        call.resolve(queryUpdateDownload(manager, id, preferences.getString("file_name", ""),
+            preferences.getString("version_code", "")));
     }
 
     @PluginMethod
@@ -121,7 +122,8 @@ public class LocalDevicePlugin extends Plugin {
             return;
         }
         DownloadManager manager = (DownloadManager) getContext().getSystemService(Activity.DOWNLOAD_SERVICE);
-        JSObject status = manager == null ? null : queryUpdateDownload(manager, id, fileName);
+        JSObject status = manager == null ? null : queryUpdateDownload(manager, id, fileName,
+            preferences.getString("version_code", ""));
         if (status == null || !"downloaded".equals(status.optString("state", ""))) {
             call.reject("The Linor update has not finished downloading yet.");
             return;
@@ -164,10 +166,11 @@ public class LocalDevicePlugin extends Plugin {
         }
     }
 
-    private JSObject queryUpdateDownload(DownloadManager manager, long id, String fileName) {
+    private JSObject queryUpdateDownload(DownloadManager manager, long id, String fileName, String versionCode) {
         JSObject result = new JSObject();
         result.put("downloadId", id);
         result.put("fileName", fileName == null ? "" : fileName);
+        result.put("versionCode", versionCode == null ? "" : versionCode);
         DownloadManager.Query query = new DownloadManager.Query().setFilterById(id);
         try (Cursor cursor = manager.query(query)) {
             if (cursor == null || !cursor.moveToFirst()) {

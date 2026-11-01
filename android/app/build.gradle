@@ -26,7 +26,7 @@ android {
             if (signingFile) {
                 storeFile file(signingFile)
                 storePassword System.getenv("LINOR_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("LINOR_KEY_ALIAS")
+                keyAlias "linor-release"
                 keyPassword System.getenv("LINOR_KEYSTORE_PASSWORD")
                 storeType "PKCS12"
             }

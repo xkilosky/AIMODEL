@@ -61,7 +61,11 @@ export const AppUpdateNotice: React.FC = () => {
       setMessage('');
 
       let currentStatus = await getNativeUpdateDownloadStatus();
-      if (currentStatus.state === 'none' || currentStatus.state === 'failed') {
+      if (
+        currentStatus.state === 'none' ||
+        currentStatus.state === 'failed' ||
+        currentStatus.versionCode !== String(nextUpdate.versionCode)
+      ) {
         currentStatus = await startNativeUpdateDownload(nextUpdate.apkUrl, nextUpdate.versionCode);
       }
       setDownload(currentStatus);

@@ -37,6 +37,7 @@ export interface NativePickedModel {
 export interface NativeUpdateDownloadStatus {
   state: 'none' | 'queued' | 'downloading' | 'downloaded' | 'failed';
   downloadId?: number;
+  versionCode?: string;
   fileName?: string;
   downloadedBytes?: number;
   totalBytes?: number;

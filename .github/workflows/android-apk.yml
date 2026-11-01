@@ -68,9 +68,8 @@ jobs:
         env:
           LINOR_RELEASE_KEYSTORE_BASE64: ${{ secrets.LINOR_RELEASE_KEYSTORE_BASE64 }}
           LINOR_RELEASE_STORE_PASSWORD: ${{ secrets.LINOR_RELEASE_STORE_PASSWORD }}
-          LINOR_RELEASE_KEY_ALIAS: ${{ secrets.LINOR_RELEASE_KEY_ALIAS }}
         run: |
-          if [ -n "$LINOR_RELEASE_KEYSTORE_BASE64" ] && [ -n "$LINOR_RELEASE_STORE_PASSWORD" ] && [ -n "$LINOR_RELEASE_KEY_ALIAS" ]; then
+          if [ -n "$LINOR_RELEASE_KEYSTORE_BASE64" ] && [ -n "$LINOR_RELEASE_STORE_PASSWORD" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
@@ -82,7 +81,6 @@ jobs:
         env:
           LINOR_RELEASE_KEYSTORE_BASE64: ${{ secrets.LINOR_RELEASE_KEYSTORE_BASE64 }}
           LINOR_RELEASE_STORE_PASSWORD: ${{ secrets.LINOR_RELEASE_STORE_PASSWORD }}
-          LINOR_RELEASE_KEY_ALIAS: ${{ secrets.LINOR_RELEASE_KEY_ALIAS }}
           LINOR_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           signing_dir="$RUNNER_TEMP/linor-signing"
@@ -91,7 +89,6 @@ jobs:
           chmod 600 "$signing_dir/release.p12"
           export LINOR_KEYSTORE_FILE="$signing_dir/release.p12"
           export LINOR_KEYSTORE_PASSWORD="$LINOR_RELEASE_STORE_PASSWORD"
-          export LINOR_KEY_ALIAS="$LINOR_RELEASE_KEY_ALIAS"
           export LINOR_VERSION_CODE=$((1000000 + GITHUB_RUN_NUMBER))
           export LINOR_VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
           chmod +x gradlew
@@ -131,4 +128,4 @@ jobs:
 
       - name: Note that signed updates require GitHub Actions secrets
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.available != 'true'
-        run: echo "::warning::Stable signing secrets are not configured; only the non-updatable debug APK was built. Add LINOR_RELEASE_KEYSTORE_BASE64, LINOR_RELEASE_STORE_PASSWORD, and LINOR_RELEASE_KEY_ALIAS to Actions secrets to publish automatic updates."
+        run: echo "::warning::Stable signing secrets are not configured; only the non-updatable debug APK was built. Add LINOR_RELEASE_KEYSTORE_BASE64 and LINOR_RELEASE_STORE_PASSWORD to Actions secrets to publish automatic updates."
