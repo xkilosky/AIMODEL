@@ -1,0 +1,131 @@
+name: Build Linor Android APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Linor ARM64 Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install Android SDK 36, CMake 3.22.1 & NDK 29 (for native llama.cpp JNI)
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.22.1"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle & sync Capacitor Android
+        run: npm run android:sync
+
+      - name: Compile Android Debug APK (CI verification)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          set +e
+          ./gradlew assembleDebug --no-daemon --console=plain --stacktrace > "$RUNNER_TEMP/linor-gradle-debug.log" 2>&1
+          build_status=$?
+          cat "$RUNNER_TEMP/linor-gradle-debug.log"
+          if [ "$build_status" -ne 0 ]; then
+            grep -E '(^e: |error:|Execution failed for task|Could not resolve|Could not find|FAILURE:|No matching variant)' "$RUNNER_TEMP/linor-gradle-debug.log" | tail -n 12 | while IFS= read -r line; do echo "::error::$line"; done
+            awk '/What went wrong:/{show=1; count=0} show {print; count++; if (count >= 14) exit}' "$RUNNER_TEMP/linor-gradle-debug.log" | while IFS= read -r line; do echo "::error::$line"; done
+            exit "$build_status"
+          fi
+          cp app/build/outputs/apk/debug/app-debug.apk ../Linor-Android-debug.apk
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linor-Android-Debug-APK
+          path: Linor-Android-debug.apk
+          if-no-files-found: error
+
+      - name: Check stable signing key availability
+        id: signing
+        env:
+          LINOR_RELEASE_KEYSTORE_BASE64: ${{ secrets.LINOR_RELEASE_KEYSTORE_BASE64 }}
+          LINOR_RELEASE_STORE_PASSWORD: ${{ secrets.LINOR_RELEASE_STORE_PASSWORD }}
+        run: |
+          if [ -n "$LINOR_RELEASE_KEYSTORE_BASE64" ] && [ -n "$LINOR_RELEASE_STORE_PASSWORD" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build stable-signed Android release APK
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.available == 'true'
+        working-directory: android
+        env:
+          LINOR_RELEASE_KEYSTORE_BASE64: ${{ secrets.LINOR_RELEASE_KEYSTORE_BASE64 }}
+          LINOR_RELEASE_STORE_PASSWORD: ${{ secrets.LINOR_RELEASE_STORE_PASSWORD }}
+          LINOR_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          signing_dir="$RUNNER_TEMP/linor-signing"
+          mkdir -p "$signing_dir"
+          echo "$LINOR_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/release.p12"
+          chmod 600 "$signing_dir/release.p12"
+          export LINOR_KEYSTORE_FILE="$signing_dir/release.p12"
+          export LINOR_KEYSTORE_PASSWORD="$LINOR_RELEASE_STORE_PASSWORD"
+          export LINOR_VERSION_CODE=$((1000000 + GITHUB_RUN_NUMBER))
+          export LINOR_VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../Linor-Android.apk
+          cat > ../linor-update.json <<EOF
+          {
+            "versionCode": $LINOR_VERSION_CODE,
+            "versionName": "$LINOR_VERSION_NAME",
+            "apkUrl": "https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Linor-Android.apk",
+            "releaseNotes": "Linor updates download automatically over Wi-Fi. Android will ask you to approve installation."
+          }
+          EOF
+
+      - name: Upload stable-signed APK Artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linor-Android-Release-APK
+          path: Linor-Android.apk
+          if-no-files-found: error
+
+      - name: Publish signed APK and update metadata
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v1.0.0-apk >/dev/null 2>&1; then
+            gh release delete-asset v1.0.0-apk Local-Android.apk --yes >/dev/null 2>&1 || true
+            gh release upload v1.0.0-apk Linor-Android.apk linor-update.json --clobber
+          else
+            gh release create v1.0.0-apk Linor-Android.apk linor-update.json \
+              --target "${{ github.sha }}" \
+              --title "Linor Android App" \
+              --notes "Signed native Android APK for Linor. Updates are checked and downloaded over Wi-Fi; Android requires confirmation to install."
+          fi
+
+      - name: Note that signed updates require GitHub Actions secrets
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.available != 'true'
+        run: echo "::warning::Stable signing secrets are not configured; only the non-updatable debug APK was built. Add LINOR_RELEASE_KEYSTORE_BASE64 and LINOR_RELEASE_STORE_PASSWORD to Actions secrets to publish automatic updates."
