@@ -155,8 +155,8 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
             </div>
             <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               Install the native Android app for direct file-backed GGUF loading, native llama.cpp,
-              and device RAM/storage detection. Download the APK, open it from Downloads, and approve
-              Android&apos;s one-time &ldquo;Install unknown apps&rdquo; prompt if shown.
+              and device RAM/storage detection. Linor checks for updates and downloads them over Wi-Fi;
+              Android still asks you to approve each installation.
             </p>
             <a
               href={APK_RELEASE_URL}

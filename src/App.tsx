@@ -69,6 +69,7 @@ import {
   AndroidInstallModal,
   type BeforeInstallPromptEvent,
 } from './components/AndroidInstallModal';
+import { AppUpdateNotice } from './components/AppUpdateNotice';
 
 function createFreshConversation(): Conversation {
   const now = Date.now();
@@ -1264,6 +1265,7 @@ export const App: React.FC = () => {
         installPrompt={installPrompt}
         onTriggerInstallPrompt={handleTriggerInstallPrompt}
       />
+      <AppUpdateNotice />
     </div>
   );
 

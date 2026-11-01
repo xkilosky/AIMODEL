@@ -33,13 +33,15 @@ npm run dev
 
 ## Building the Native Android APK
 
-### Option 1: Download the Android APK
-Install the latest signed-by-GitHub Actions debug APK from [GitHub Releases](https://github.com/xkilosky/AIMODEL/releases/latest). On Android, download the APK, open it from Downloads, and approve the one-time unknown-app install prompt if Android asks.
+### Option 1: Download and update the Android APK
+After the maintainer configures the signing secrets and publishes the first stable-signed APK, install it from [GitHub Releases](https://github.com/xkilosky/AIMODEL/releases/latest). Linor then checks for updates when it opens and periodically while it is running, and downloads updates automatically over Wi-Fi. Tap **Install update** when it is ready; Android requires the user to approve each sideloaded APK installation. Updates keep Linor's private model files when the APK has the same signing key.
+
+The first stable-signed release is a one-time migration from older CI debug APKs. Back up your original `.gguf` first; uninstalling the old build to change its signing key deletes Linor's private model files. After installing the stable-signed release, future updates can install in place and retain app data.
 
 ### Option 2: Automated Cloud Build (GitHub Actions)
-Push to GitHub or trigger the **Build Linor Android APK** workflow in `.github/workflows/android-apk.yml`. GitHub Actions compiles the native ARM64 `llama.cpp` + Capacitor Android app, uploads a workflow artifact, and refreshes the APK in GitHub Releases.
+Push to GitHub or trigger the **Build Linor Android APK** workflow in `.github/workflows/android-apk.yml`. Non-main branches and pull requests build a debug APK for CI checks; pushing or manually running the workflow on `main` can publish a signed update. To publish an installable auto-updating release, configure these repository Actions secrets once: `LINOR_RELEASE_KEYSTORE_BASE64` (base64-encoded PKCS#12 signing keystore), `LINOR_RELEASE_STORE_PASSWORD`, and `LINOR_RELEASE_KEY_ALIAS`. Keep the keystore and password private and backed up; do not commit them. The workflow then publishes `Linor-Android.apk` and its update metadata to GitHub Releases.
 
-### Option 2: Linor Build with Android Studio
+### Option 3: Linor Build with Android Studio
 1. Install JDK 21 and Android Studio (with Android SDK 36 & NDK `29.0.13113456`).
 2. Sync the web bundle into `android/`:
    ```bash
@@ -53,5 +55,5 @@ Push to GitHub or trigger the **Build Linor Android APK** workflow in `.github/w
    ```
    The installable APK is output to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-### Option 3: Instant Offline Install on Android Chrome (PWA)
+### Option 4: Instant Offline Install on Android Chrome (PWA)
 Open the hosted web app in Chrome on Android and tap **Menu (⋮) → Add to Home screen / Install app** to install **Linor** with fullscreen Android navigation and WebGPU/WASM offline model execution.

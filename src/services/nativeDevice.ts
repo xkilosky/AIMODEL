@@ -34,10 +34,23 @@ export interface NativePickedModel {
   modelStorageLimitBytes: number;
 }
 
+export interface NativeUpdateDownloadStatus {
+  state: 'none' | 'queued' | 'downloading' | 'downloaded' | 'failed';
+  downloadId?: number;
+  fileName?: string;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  progress?: number;
+  error?: string;
+}
+
 interface NativeDeviceBridge {
   getDeviceProfile(): Promise<Omit<DeviceProfile, 'isNative'>>;
   pickAndStoreGguf(): Promise<NativePickedModel>;
   deleteStoredModel(options: { path: string }): Promise<void>;
+  startUpdateDownload(options: { url: string; versionCode: string }): Promise<NativeUpdateDownloadStatus>;
+  getUpdateDownloadStatus(): Promise<NativeUpdateDownloadStatus>;
+  installDownloadedUpdate(): Promise<{ permissionGranted: boolean }>;
   addListener(
     eventName: 'modelCopyProgress',
     listener: (event: { bytesCopied: number; totalBytes: number }) => void
@@ -126,6 +139,24 @@ export async function pickAndStoreNativeGguf(): Promise<NativePickedModel> {
 export async function deleteNativeStoredModel(path: string): Promise<void> {
   if (!path || !Capacitor.isNativePlatform()) return;
   await NativeDevice.deleteStoredModel({ path });
+}
+
+export async function startNativeUpdateDownload(
+  url: string,
+  versionCode: number
+): Promise<NativeUpdateDownloadStatus> {
+  if (!Capacitor.isNativePlatform()) throw new Error('APK updates are only available in the Android app.');
+  return NativeDevice.startUpdateDownload({ url, versionCode: String(versionCode) });
+}
+
+export async function getNativeUpdateDownloadStatus(): Promise<NativeUpdateDownloadStatus> {
+  if (!Capacitor.isNativePlatform()) return { state: 'none' };
+  return NativeDevice.getUpdateDownloadStatus();
+}
+
+export async function installNativeUpdate(): Promise<{ permissionGranted: boolean }> {
+  if (!Capacitor.isNativePlatform()) throw new Error('APK updates are only available in the Android app.');
+  return NativeDevice.installDownloadedUpdate();
 }
 
 export function getModelFitAssessment(

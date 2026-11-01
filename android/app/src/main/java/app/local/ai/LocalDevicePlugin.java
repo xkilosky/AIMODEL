@@ -2,15 +2,21 @@ package app.local.ai;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.DownloadManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.StatFs;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
+import android.content.pm.PackageManager;
 import android.util.Base64;
 
 import androidx.activity.result.ActivityResult;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -30,6 +36,168 @@ public class LocalDevicePlugin extends Plugin {
     private static final long MAX_MODEL_LIBRARY_BYTES = 8L * 1024L * 1024L * 1024L;
     private static final long MIN_FREE_SPACE_RESERVE = 256L * 1024L * 1024L;
     private static final int HEADER_PREVIEW_BYTES = 512 * 1024;
+    private static final String UPDATE_APK_URL = "https://github.com/xkilosky/AIMODEL/releases/download/v1.0.0-apk/Linor-Android.apk";
+    private static final String UPDATE_PREFS = "linor_update";
+
+    @PluginMethod
+    public void startUpdateDownload(PluginCall call) {
+        String url = call.getString("url", "");
+        String versionCode = call.getString("versionCode", "");
+        if (!UPDATE_APK_URL.equals(url)) {
+            call.reject("Update URL is not the official Linor APK release.");
+            return;
+        }
+        if (versionCode == null || !versionCode.matches("[0-9]{1,12}")) {
+            call.reject("A valid Linor update version is required.");
+            return;
+        }
+
+        DownloadManager manager = (DownloadManager) getContext().getSystemService(Activity.DOWNLOAD_SERVICE);
+        if (manager == null) {
+            call.reject("Android download service is unavailable.");
+            return;
+        }
+
+        SharedPreferences preferences = getContext().getSharedPreferences(UPDATE_PREFS, Activity.MODE_PRIVATE);
+        long previousId = preferences.getLong("download_id", -1L);
+        if (previousId >= 0) {
+            JSObject previous = queryUpdateDownload(manager, previousId,
+                preferences.getString("file_name", ""));
+            String previousState = previous.optString("state", "");
+            String previousVersion = preferences.getString("version_code", "");
+            if (versionCode.equals(previousVersion)
+                    && ("queued".equals(previousState) || "downloading".equals(previousState)
+                    || "downloaded".equals(previousState))) {
+                call.resolve(previous);
+                return;
+            }
+            manager.remove(previousId);
+        }
+
+        String fileName = "Linor-update-" + versionCode + ".apk";
+        try {
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            request.setTitle("Linor update");
+            request.setDescription("Downloading Linor update " + versionCode + " over Wi-Fi");
+            request.setMimeType("application/vnd.android.package-archive");
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setAllowedOverMetered(false);
+            request.setAllowedOverRoaming(false);
+            request.setDestinationInExternalFilesDir(getContext(), Environment.DIRECTORY_DOWNLOADS, fileName);
+            long id = manager.enqueue(request);
+            preferences.edit().putLong("download_id", id).putString("file_name", fileName)
+                .putString("version_code", versionCode).apply();
+            call.resolve(queryUpdateDownload(manager, id, fileName));
+        } catch (Exception e) {
+            call.reject("Could not start the update download: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getUpdateDownloadStatus(PluginCall call) {
+        SharedPreferences preferences = getContext().getSharedPreferences(UPDATE_PREFS, Activity.MODE_PRIVATE);
+        long id = preferences.getLong("download_id", -1L);
+        if (id < 0) {
+            JSObject result = new JSObject();
+            result.put("state", "none");
+            call.resolve(result);
+            return;
+        }
+        DownloadManager manager = (DownloadManager) getContext().getSystemService(Activity.DOWNLOAD_SERVICE);
+        if (manager == null) {
+            call.reject("Android download service is unavailable.");
+            return;
+        }
+        call.resolve(queryUpdateDownload(manager, id, preferences.getString("file_name", "")));
+    }
+
+    @PluginMethod
+    public void installDownloadedUpdate(PluginCall call) {
+        SharedPreferences preferences = getContext().getSharedPreferences(UPDATE_PREFS, Activity.MODE_PRIVATE);
+        String fileName = preferences.getString("file_name", "");
+        long id = preferences.getLong("download_id", -1L);
+        if (id < 0 || fileName.isEmpty()) {
+            call.reject("There is no downloaded Linor update to install.");
+            return;
+        }
+        DownloadManager manager = (DownloadManager) getContext().getSystemService(Activity.DOWNLOAD_SERVICE);
+        JSObject status = manager == null ? null : queryUpdateDownload(manager, id, fileName);
+        if (status == null || !"downloaded".equals(status.optString("state", ""))) {
+            call.reject("The Linor update has not finished downloading yet.");
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && !getContext().getPackageManager().canRequestPackageInstalls()) {
+            JSObject result = new JSObject();
+            result.put("permissionGranted", false);
+            try {
+                Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + getContext().getPackageName()));
+                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(settingsIntent);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Android could not open the install-permission settings: " + e.getMessage(), e);
+            }
+            return;
+        }
+
+        File downloadDirectory = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        File apk = downloadDirectory == null ? null : new File(downloadDirectory, fileName);
+        if (apk == null || !apk.isFile() || apk.length() < 1024 * 1024) {
+            call.reject("The downloaded update file is missing or incomplete. Download it again.");
+            return;
+        }
+        try {
+            Uri apkUri = FileProvider.getUriForFile(getContext(),
+                getContext().getPackageName() + ".fileprovider", apk);
+            Intent installIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(installIntent);
+            JSObject result = new JSObject();
+            result.put("permissionGranted", true);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Android could not open the installer: " + e.getMessage(), e);
+        }
+    }
+
+    private JSObject queryUpdateDownload(DownloadManager manager, long id, String fileName) {
+        JSObject result = new JSObject();
+        result.put("downloadId", id);
+        result.put("fileName", fileName == null ? "" : fileName);
+        DownloadManager.Query query = new DownloadManager.Query().setFilterById(id);
+        try (Cursor cursor = manager.query(query)) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                result.put("state", "failed");
+                result.put("error", "Android no longer has this download.");
+                return result;
+            }
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+            result.put("downloadedBytes", Math.max(0, downloaded));
+            result.put("totalBytes", Math.max(0, total));
+            if (total > 0) result.put("progress", Math.min(100, (int) (downloaded * 100L / total)));
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                result.put("state", "downloaded");
+            } else if (status == DownloadManager.STATUS_RUNNING) {
+                result.put("state", "downloading");
+            } else if (status == DownloadManager.STATUS_PENDING || status == DownloadManager.STATUS_PAUSED) {
+                result.put("state", "queued");
+            } else {
+                result.put("state", "failed");
+                int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+                result.put("error", "Android download failed (" + reason + "). Try again on Wi-Fi.");
+            }
+        } catch (Exception e) {
+            result.put("state", "failed");
+            result.put("error", "Could not read download status: " + e.getMessage());
+        }
+        return result;
+    }
 
     @PluginMethod
     public void getDeviceProfile(PluginCall call) {
