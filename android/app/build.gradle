@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+def linorReleaseSigningEnabled = System.getenv("LINOR_KEYSTORE_FILE") != null
+
 android {
     namespace = "app.local.ai"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -30,7 +32,9 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (linorReleaseSigningEnabled) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
