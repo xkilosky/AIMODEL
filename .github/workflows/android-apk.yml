@@ -45,7 +45,14 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          set +e
+          ./gradlew assembleDebug --no-daemon --stacktrace > "$RUNNER_TEMP/linor-gradle-debug.log" 2>&1
+          build_status=$?
+          cat "$RUNNER_TEMP/linor-gradle-debug.log"
+          if [ "$build_status" -ne 0 ]; then
+            grep -E '(^e: |error:|What went wrong:|Execution failed for task|Could not resolve|Could not find|FAILURE:|No matching variant)' "$RUNNER_TEMP/linor-gradle-debug.log" | tail -n 12 | while IFS= read -r line; do echo "::error::$line"; done
+            exit "$build_status"
+          fi
           cp app/build/outputs/apk/debug/app-debug.apk ../Linor-Android-debug.apk
 
       - name: Upload Debug APK Artifact
